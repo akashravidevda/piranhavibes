@@ -1,5 +1,22 @@
 # Piranha Vibes — Setup Guide
 
+**Live:** <https://piranhavibes.com> · Admin: <https://piranhavibes.com/admin.html>
+
+## Current status
+
+| Piece | State |
+| ----- | ----- |
+| Storefront on the custom domain | ✅ live |
+| Google Sheets backend | ✅ connected (`API_VERSION 2`) |
+| Admin password (`ADMIN_KEY`) | ✅ set — sign-in works |
+| Orders, stock, pricing, coupons, settings | ✅ verified end to end |
+| **Product photo upload → GitHub** | ⬜ needs `GH_TOKEN` — see *Product image uploads* |
+
+Everything below is the full walkthrough, kept for reference and for setting the
+project up again from scratch.
+
+---
+
 The site works **immediately** with no setup: open `index.html` and everything
 (browsing, cart, checkout) runs on the built-in catalogue. Follow this guide to
 connect Google Sheets so orders, pricing and stock become live and manageable.
@@ -268,10 +285,25 @@ the one repo, and only its files):
 1. Go to <https://github.com/settings/personal-access-tokens/new>
 2. **Token name**: `piranha-vibes-image-upload`
 3. **Expiration**: 1 year (set a calendar reminder to rotate it)
-4. **Repository access** ▸ **Only select repositories** ▸ pick your store repo
+4. **Repository access** ▸ **Only select repositories** ▸ `piranhavibes`
 5. **Repository permissions** ▸ find **Contents** ▸ set to **Read and write**
-   *(leave every other permission as "No access")*
 6. **Generate token** and copy it — GitHub shows it only once.
+
+> **Step 5 is the one everybody gets wrong.** Scroll to *Repository*
+> permissions, not *Account* permissions. `Metadata: Read` is added
+> automatically and is enough to *read* the repo — which is why the installer's
+> first check can pass while the write check fails with
+> `403 Resource not accessible by personal access token`. If that happens you
+> don't need a new token: open the token, set **Contents → Read and write**,
+> press **Update token**, and run the installer again.
+
+**Stuck on the fine-grained screen?** A classic token also works and can be
+pre-filled in one click:
+<https://github.com/settings/tokens/new?scopes=repo&description=Piranha%20Vibes%20image%20uploads>
+— the `repo` scope is already ticked, so just set an expiry and press
+**Generate token**. The trade-off: a classic token can reach *all* your repos,
+where the fine-grained one is limited to this single repository. Prefer
+fine-grained when you can.
 
 **2. Install it — the quick way.** In the Apps Script editor find
 `INSTALL_GITHUB_UPLOADS` and paste the token on the `TOKEN` line:
@@ -365,20 +397,26 @@ The site is fully static, so any static host works — no server needed. The
 whole project lives at the **root** of `mraadarshdubey/piranhavibes`, so
 `index.html` is the entry point with no sub-folder to configure.
 
-### GitHub Pages
+### How it's currently deployed
 
-Repo ▸ **Settings ▸ Pages ▸ Source: Deploy from a branch ▸ `main` / `/ (root)`**.
+Repo ▸ **Settings ▸ Pages ▸ Source: Deploy from a branch ▸ `main` / `/ (root)`**,
+with a `CNAME` file at the repo root containing `piranhavibes.com`, and
+Cloudflare fronting the domain.
 
-One thing to decide first — **the repo is currently private**:
+The repo is **public**, which is what makes GitHub Pages free and lets the
+`raw`/`jsdelivr` image URLs work. It also means `admin.html` is reachable by
+anyone — that's fine, because it's only a login form and every piece of real
+data is fetched after the backend verifies `ADMIN_KEY`. The key is the whole
+defence, so keep it strong.
 
-| Repo visibility | GitHub Pages           | `raw` / `jsdelivr` image URLs | Notes |
-| --------------- | ---------------------- | ----------------------------- | ----- |
-| **Private**     | Needs GitHub **Pro** (paid) | Won't load — they require auth | Keep `GH_IMAGE_URL=relative` |
-| **Public**      | Free                   | Work fine                     | `admin.html` is reachable by anyone — the `ADMIN_KEY` is your only defence |
+**A caution about the `CNAME` file.** The moment it exists, Pages treats that
+domain as the site's address and 301-redirects every `*.github.io` URL there.
+If the domain's DNS isn't already pointing at the Pages site, both URLs go dark
+— the github.io one redirects away, and the custom domain serves whatever it
+was serving before. Point the DNS first, then add `CNAME`.
 
-Making it public is the normal choice for a shop front-end, and it is safe
-*provided* `ADMIN_KEY` is strong: the page is just a login form, and every
-piece of real data is fetched only after the backend verifies the key.
+In Cloudflare, keep **SSL/TLS mode on "Full"**. "Flexible" against an
+HTTPS origin causes a redirect loop.
 
 ### Other hosts
 

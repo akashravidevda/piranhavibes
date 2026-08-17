@@ -1,5 +1,7 @@
 # Piranha Vibes — Premium Storefront
 
+**Live:** <https://piranhavibes.com> · **Admin:** <https://piranhavibes.com/admin.html>
+
 A complete, fully working rebuild of piranhavibes.com in plain HTML, CSS and
 JavaScript, with **Google Sheets as the database** and a built-in admin panel
 for pricing, stock and orders.
