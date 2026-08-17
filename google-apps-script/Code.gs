@@ -12,12 +12,14 @@
       3. Project Settings ▸ Script Properties ▸ add:
             ADMIN_KEY   = a strong password of your choice
             NOTIFY_EMAIL= piranhavibes@gmail.com   (optional)
-         Optional, to push admin-uploaded product images
-         straight into your GitHub repo (see IMAGE UPLOAD below;
-         leave these blank and images go to Google Drive instead):
+         To let the admin panel upload product photos into your
+         GitHub repo, run INSTALL_GITHUB_UPLOADS — it sets these
+         for you and verifies them with a real test commit:
             GH_TOKEN    = fine-grained PAT, Contents: Read & Write
             GH_REPO     = your-username/your-repo
             GH_BRANCH   = main
+         Leave them unset and photo upload is simply switched off;
+         you can still type an image path or URL by hand.
          Only for STANDALONE projects (not needed if you opened this
          script from inside a Sheet):
             SHEET_ID    = the long ID from the spreadsheet URL, i.e.
@@ -218,7 +220,7 @@ function INSTALL_GITHUB_UPLOADS() {
     headers: headers, muteHttpExceptions: true
   });
   if (repoRes.getResponseCode() !== 200) {
-    throw new Error(explainGhError(repoRes, REPO, 'reading the repository'));
+    throw new Error(explainGhError(repoRes, REPO, 'reading the repository', TOKEN));
   }
   var info = JSON.parse(repoRes.getContentText());
   log.push('Repository   : ' + info.full_name + (info['private'] ? ' (private)' : ' (public)'));
@@ -242,7 +244,7 @@ function INSTALL_GITHUB_UPLOADS() {
     muteHttpExceptions: true
   });
   if (put.getResponseCode() !== 200 && put.getResponseCode() !== 201) {
-    throw new Error(explainGhError(put, REPO, 'writing a file'));
+    throw new Error(explainGhError(put, REPO, 'writing a file', TOKEN));
   }
   log.push('Write access : OK (test commit made)');
 
@@ -280,24 +282,62 @@ function INSTALL_GITHUB_UPLOADS() {
   return msg;
 }
 
-function explainGhError(res, repo, doing) {
+function explainGhError(res, repo, doing, token) {
   var code = res.getResponseCode();
   var detail = '';
   try { detail = JSON.parse(res.getContentText()).message || ''; } catch (e) {}
-  var hint;
+
+  // GitHub tells us exactly which permission the call wanted.
+  var h = res.getHeaders() || {};
+  var needed = h['x-accepted-github-permissions'] ||
+               h['X-Accepted-GitHub-Permissions'] || '';
+  var scopes = h['x-oauth-scopes'] || h['X-OAuth-Scopes'] || '';
+  var kind = /^github_pat_/.test(String(token)) ? 'fine-grained'
+           : /^ghp_/.test(String(token)) ? 'classic'
+           : 'unknown type';
+
+  var lines = ['FAILED while ' + doing + ' (HTTP ' + code + ')' + (detail ? ' — ' + detail : '')];
+  lines.push('Token looks like: ' + kind +
+             (String(token).length ? ' (' + String(token).length + ' characters)' : ''));
+  if (needed) lines.push('GitHub says this call needs: ' + needed);
+  if (scopes) lines.push('Classic token scopes present: ' + (scopes || '(none)'));
+  lines.push('');
+
   if (code === 401) {
-    hint = 'The token was rejected. It may be mistyped, expired, or revoked. Generate a new one.';
+    lines.push('FIX: the token was rejected outright — mistyped, expired or revoked.');
+    lines.push('     Check for a stray space, or generate a new token.');
   } else if (code === 403) {
-    hint = 'The token is valid but not allowed to do this. On the token page, set ' +
-           'Repository permissions > Contents to "Read and write".';
+    lines.push('FIX: the token is real and can SEE the repo, but is not allowed to WRITE.');
+    lines.push('     Almost always this means Contents is still "Read-only" or "No access".');
+    lines.push('');
+    if (kind === 'classic') {
+      lines.push('     Classic token: it needs the "repo" scope ticked.');
+      lines.push('     https://github.com/settings/tokens');
+    } else {
+      lines.push('     You do NOT need a new token — edit the one you have:');
+      lines.push('       1. https://github.com/settings/personal-access-tokens');
+      lines.push('       2. Click your token');
+      lines.push('       3. Repository access -> Only select repositories -> ' + repo);
+      lines.push('       4. Scroll to *Repository permissions* (not Account permissions)');
+      lines.push('       5. Contents  ->  Read and write');
+      lines.push('       6. Update token at the bottom');
+      lines.push('');
+      lines.push('     Note: "Metadata: Read" alone is enough to read the repo, which is');
+      lines.push('     why step 1 passed and this step did not.');
+    }
+    lines.push('');
+    lines.push('     Then Run INSTALL_GITHUB_UPLOADS again.');
   } else if (code === 404) {
-    hint = 'GitHub cannot find "' + repo + '" for this token. Check the owner/repo spelling, ' +
-           'and that the token lists this repository under "Only select repositories".';
+    lines.push('FIX: GitHub cannot find "' + repo + '" for this token.');
+    lines.push('     Check the owner/repo spelling, and that the token lists this');
+    lines.push('     repository under "Only select repositories".');
+  } else if (code === 409 || code === 422) {
+    lines.push('FIX: the branch may be protected, or the branch name is wrong.');
+    lines.push('     Check BRANCH in INSTALL_GITHUB_UPLOADS matches a real branch.');
   } else {
-    hint = 'Unexpected response from GitHub.';
+    lines.push('Unexpected response from GitHub.');
   }
-  return 'FAILED while ' + doing + ' (HTTP ' + code + ')' +
-         (detail ? ' — ' + detail : '') + '\n' + hint;
+  return lines.join('\n');
 }
 
 /* Reports upload config and live connectivity, without writing anything. */
@@ -325,7 +365,7 @@ function CHECK_GITHUB_UPLOADS() {
       '  URLs   : ' + g.urlMode + '\n' +
       '  Token  : valid (' + String(g.token).length + ' characters)'
     : 'Image uploads are configured but the token is not working right now.\n' +
-      explainGhError(res, g.repo, 'reading the repository');
+      explainGhError(res, g.repo, 'reading the repository', g.token);
   Logger.log(msg);
   return msg;
 }
