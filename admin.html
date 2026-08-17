@@ -40,6 +40,16 @@
         <button class="btn btn-ghost btn-sm btn-block" type="button" id="offlineBtn">Continue in offline preview</button>
       </div>
     </form>
+    <div class="hidden" id="connectBox" style="margin-top:22px;padding-top:20px;border-top:1px solid var(--line)">
+      <b style="font-size:.88rem;display:block;margin-bottom:5px">Connect your backend</b>
+      <p class="tiny muted" style="margin-bottom:12px">Paste the Apps Script <b>Web app</b> URL — the one ending in <code>/exec</code>.</p>
+      <div class="field" style="margin-bottom:10px">
+        <input id="apiUrl" placeholder="https://script.google.com/macros/s/AKfy.../exec" spellcheck="false" autocapitalize="off">
+        <span class="msg" id="apiMsg">Enter a valid /exec URL</span>
+      </div>
+      <button class="btn btn-sm btn-block" type="button" id="connectBtn">Connect &amp; verify</button>
+      <p class="tiny muted" style="margin-top:10px">Saved in this browser only. To point the whole store at it, also paste it into <code>assets/js/config.js</code>.</p>
+    </div>
     <p class="tiny muted" style="margin-top:18px" id="loginHint"></p>
   </div>
 </div>

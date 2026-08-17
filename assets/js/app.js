@@ -6,6 +6,17 @@
   "use strict";
 
   const CFG = window.PV_CONFIG;
+
+  /* A backend URL saved from the admin console overrides the one in
+     config.js. This lets you connect (or re-point) the site without
+     editing and redeploying code — but the override lives in ONE
+     browser's localStorage, so config.js still has to be filled in for
+     customers to reach the live backend. */
+  try {
+    const ov = localStorage.getItem("pv_api_url");
+    if (ov) CFG.API_URL = ov;
+  } catch (e) {}
+
   const LS = {
     cart: "pv_cart_v1",
     wish: "pv_wish_v1",
@@ -84,9 +95,11 @@
      1. Transport — JSONP reads + resilient writes
      --------------------------------------------------------- */
   let jsonpN = 0;
-  function jsonp(params, timeout) {
+  /* `base` lets the admin console verify a candidate URL before saving it. */
+  function jsonp(params, timeout, base) {
     return new Promise((resolve, reject) => {
-      if (!CFG.API_URL) return reject(new Error("NO_API"));
+      const endpoint = base || CFG.API_URL;
+      if (!endpoint) return reject(new Error("NO_API"));
       const cb = "pvcb_" + Date.now() + "_" + jsonpN++;
       const s = document.createElement("script");
       const t = setTimeout(() => {
@@ -102,7 +115,7 @@
         cleanup();
         resolve(data);
       };
-      const u = new URL(CFG.API_URL);
+      const u = new URL(endpoint);
       Object.keys(params).forEach((k) => u.searchParams.set(k, params[k]));
       u.searchParams.set("callback", cb);
       s.src = u.toString();

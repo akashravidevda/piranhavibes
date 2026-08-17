@@ -105,17 +105,44 @@ nothing. The script handles this, you just need to tell it which sheet to use:
 
 ## Part 4 — Connect the site
 
-Open `assets/js/config.js` and paste the URL:
+The URL has to go into `assets/js/config.js`, because that file is what every
+visitor's browser downloads:
 
 ```js
 API_URL: "https://script.google.com/macros/s/AKfycb..../exec",
 ```
 
-Save, reload the site. Done — the store is now reading from your Sheet.
+Save, commit, push. Done — the store is now reading from your Sheet.
 
 To confirm: open `admin.html`, sign in with your `ADMIN_KEY`. The orange
 "Offline preview" banner should be gone and the Settings tab should say
 **Connected to Google Sheets**.
+
+### Connecting from the admin panel instead
+
+If the site is already deployed and you'd rather not edit code, the login
+screen has a **Connect your backend** box. Paste the `/exec` URL and press
+**Connect & verify** — it calls the deployment first and only saves the URL if
+it actually answers, so a typo or a wrong sharing setting is caught right
+there.
+
+Two things to know about this shortcut:
+
+- It is stored in **that one browser** (`localStorage`). Your customers'
+  browsers know nothing about it, so **the storefront still runs on the seed
+  catalogue** — no live prices, and orders won't land in the Sheet.
+- It is meant for testing and emergencies. For the real thing, put the URL in
+  `config.js`.
+
+Once connected, **Settings ▸ Backend** shows the exact line to paste into
+`config.js` with a copy button, plus a **Disconnect this browser** button.
+
+Common errors it will tell you about:
+
+- Pasting the `/dev` URL — that's the private test link. Use
+  **Deploy ▸ Manage deployments** and copy the **Web app** URL ending `/exec`.
+- "Couldn't reach that deployment" — the deployment's *Who has access* isn't
+  **Anyone**, or you edited `Code.gs` without deploying a **new version**.
 
 > **Whenever you edit `Code.gs` later**, you must re-deploy:
 > **Deploy ▸ Manage deployments ▸ pencil icon ▸ Version: New version ▸ Deploy**.

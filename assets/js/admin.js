@@ -73,11 +73,68 @@
   /* ---------------------------------------------------------
      Auth
      --------------------------------------------------------- */
-  if (!CFG.API_URL) {
-    $("#loginHint").innerHTML =
-      "<b>Backend not connected yet.</b> Add your Apps Script <code>/exec</code> URL to <code>assets/js/config.js</code> " +
-      "to manage live data. You can still sign in with any key to preview the console using the local seed catalogue.";
+  /* ---------------------------------------------------------
+     Backend connection
+     --------------------------------------------------------- */
+  const API_OVERRIDE = "pv_api_url";
+
+  function connectLine(url) {
+    return '  API_URL: "' + url + '",';
   }
+
+  async function verifyEndpoint(url) {
+    // catalog() is public, so this proves the deployment is reachable
+    // and shared correctly — before we commit to saving it.
+    const r = await jsonp({ action: "catalog" }, 20000, url);
+    if (!r || !r.ok) throw new Error("BAD_RESPONSE");
+    return r;
+  }
+
+  function wireConnect() {
+    const box = $("#connectBox");
+    if (!box) return;
+    box.classList.remove("hidden");
+    $("#loginHint").innerHTML =
+      "<b>Backend not connected yet.</b> Connect it below, or sign in with any key to preview the console on the local seed catalogue.";
+
+    const input = $("#apiUrl");
+    const msg = $("#apiMsg");
+    const btn = $("#connectBtn");
+    const fail = (t) => {
+      msg.textContent = t;
+      input.closest(".field").classList.add("err");
+    };
+    input.addEventListener("input", () =>
+      input.closest(".field").classList.remove("err")
+    );
+
+    btn.onclick = async () => {
+      const url = input.value.trim();
+      if (!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec/.test(url)) {
+        return fail(
+          /\/dev(\?|$)/.test(url)
+            ? "That's the test URL. Use Deploy ▸ Manage deployments and copy the Web app URL ending in /exec."
+            : "Paste the full Web app URL, ending in /exec."
+        );
+      }
+      btn.classList.add("btn-loading");
+      try {
+        const cat = await verifyEndpoint(url);
+        localStorage.setItem(API_OVERRIDE, url);
+        localStorage.removeItem(LS.cache);
+        toast(`Connected — ${(cat.products || []).length} products found`);
+        setTimeout(() => location.reload(), 700);
+      } catch (e) {
+        btn.classList.remove("btn-loading");
+        fail(
+          "Couldn't reach that deployment. Check that Deploy ▸ Web app has " +
+            'Execute as "Me" and Who has access "Anyone", then redeploy a new version.'
+        );
+      }
+    };
+  }
+
+  if (!CFG.API_URL) wireConnect();
 
   /* --- login hardening: reveal toggle, caps-lock hint, lockout --- */
   const LOCK = "pv_admin_lock_v1";
@@ -1140,12 +1197,27 @@ ${o.notes ? `<div class="card" style="margin-top:14px;padding:14px;background:va
   <p class="tiny muted" style="margin-bottom:12px">Status: <b style="color:${live ? "var(--green)" : "var(--red)"}">${
       live ? "Connected to Google Sheets" : "Not connected"
     }</b></p>
-  <p class="tiny muted" style="word-break:break-all">API URL: <code>${esc(CFG.API_URL || "— not set in assets/js/config.js —")}</code></p>
+  <p class="tiny muted" style="word-break:break-all">API URL: <code>${esc(CFG.API_URL || "— not set —")}</code></p>
   ${
     STORAGE && STORAGE.sheetUrl
       ? `<p class="tiny muted" style="margin-top:8px">Database: <a href="${esc(
           STORAGE.sheetUrl
         )}" target="_blank" rel="noopener" style="text-decoration:underline">open the Google Sheet ↗</a></p>`
+      : ""
+  }
+  ${
+    localStorage.getItem(API_OVERRIDE)
+      ? `<div style="margin-top:14px;padding:14px;border-radius:12px;background:#fffbf0;border:1px solid var(--gold)">
+          <b class="tiny" style="display:block;margin-bottom:6px">This connection is saved in this browser only</b>
+          <p class="tiny muted" style="margin-bottom:10px">Customers load <code>assets/js/config.js</code> from the server, so the storefront still can't see live prices or place orders into your Sheet until you put the URL there too. Copy the line below into <code>config.js</code>, then commit and push.</p>
+          <code style="display:block;padding:10px;border-radius:8px;background:var(--ink);color:#e9e7f5;font-size:.74rem;word-break:break-all;margin-bottom:10px">${esc(
+            connectLine(CFG.API_URL)
+          )}</code>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-sm" id="copyApiLine">Copy the line</button>
+            <button class="btn btn-sm btn-ghost" id="disconnectApi">Disconnect this browser</button>
+          </div>
+        </div>`
       : ""
   }
   <p class="tiny muted" style="margin-top:10px">Open <code>SETUP.md</code> for the 5-minute deployment walkthrough.</p>
@@ -1176,6 +1248,25 @@ ${
     <td class="tiny">${esc(c.message)}</td></tr>`).join("")}</tbody></table></div></div>`
     : ""
 }`;
+
+    const copyBtn = $("#copyApiLine");
+    if (copyBtn)
+      copyBtn.onclick = async () => {
+        try {
+          await navigator.clipboard.writeText(connectLine(CFG.API_URL));
+          toast("Copied — paste it into assets/js/config.js");
+        } catch (e) {
+          toast("Select the line above and copy it manually", "err");
+        }
+      };
+    const disc = $("#disconnectApi");
+    if (disc)
+      disc.onclick = () => {
+        if (!confirm("Disconnect this browser from the live backend?")) return;
+        localStorage.removeItem(API_OVERRIDE);
+        localStorage.removeItem(LS.cache);
+        location.reload();
+      };
 
     $("#s-save").onclick = async () => {
       const rec = {
