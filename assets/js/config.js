@@ -13,7 +13,7 @@ window.PV_CONFIG = {
   // Apps Script Web app (Execute as: Me · Who has access: Anyone).
   // Re-deploying a NEW VERSION keeps this URL, so it rarely changes.
   API_URL:
-    "https://script.google.com/macros/s/AKfycbwjwDQx1Stqp-PNoqWFqrLRgv3cmEbSOmfQvD6CvMWQn0OXhF55MPeCXdYf_q6yxKuQsw/exec",
+    "https://script.google.com/macros/s/AKfycbxyuuhq1e3mP6yEw4P0TNKI0ggYdHcB8uHVlm0YLMkH9dUoF98LPGoAkr3PbKrNBbXRCQ/exec",
 
   // ── Brand ────────────────────────────────────────────────────
   BRAND: "Piranha Vibes",
