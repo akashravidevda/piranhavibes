@@ -215,7 +215,23 @@ function INSTALL_GITHUB_UPLOADS() {
   };
   var log = ['GITHUB IMAGE UPLOADS — INSTALL', '-------------------------------'];
 
-  // 1. can the token see the repo at all?
+  // 1. Whose token is this? Catches a token made on the wrong account.
+  var who = UrlFetchApp.fetch('https://api.github.com/user', {
+    headers: headers, muteHttpExceptions: true
+  });
+  if (who.getResponseCode() === 200) {
+    try {
+      log.push('Token owner  : ' + JSON.parse(who.getContentText()).login);
+    } catch (e) {}
+  } else if (who.getResponseCode() === 401) {
+    throw new Error(explainGhError(who, REPO, 'identifying the token', TOKEN));
+  }
+
+  // 2. Does the repo exist and is BRANCH real?
+  //    NOTE: per GitHub's docs, GET /repos/{owner}/{repo} only needs
+  //    "Metadata: read", and public repositories answer it even with no
+  //    permissions at all. So this proves the repo exists — nothing more.
+  //    The write test below is the only real proof of access.
   var repoRes = UrlFetchApp.fetch('https://api.github.com/repos/' + REPO, {
     headers: headers, muteHttpExceptions: true
   });
@@ -225,6 +241,14 @@ function INSTALL_GITHUB_UPLOADS() {
   var info = JSON.parse(repoRes.getContentText());
   log.push('Repository   : ' + info.full_name + (info['private'] ? ' (private)' : ' (public)'));
   log.push('Default brnch: ' + info.default_branch);
+  log.push('Owner type   : ' + (info.owner && info.owner.type) +
+           ((info.owner && info.owner.type === 'Organization')
+             ? ' — org repos may also need the token approved by an org owner'
+             : ' — personal repo, no org approval needed'));
+  if (info['private']) {
+    log.push('NOTE         : private repo — GH_IMAGE_URL must be "relative";');
+    log.push('               raw and jsdelivr URLs need authentication.');
+  }
   if (info.default_branch !== BRANCH) {
     log.push('NOTE         : you set BRANCH="' + BRANCH + '" but the default is "' +
              info.default_branch + '". Make sure that is intentional.');
@@ -246,7 +270,7 @@ function INSTALL_GITHUB_UPLOADS() {
   if (put.getResponseCode() !== 200 && put.getResponseCode() !== 201) {
     throw new Error(explainGhError(put, REPO, 'writing a file', TOKEN));
   }
-  log.push('Write access : OK (test commit made)');
+  log.push('Contents:write: OK (test commit made) — this is the check that matters');
 
   var sha = JSON.parse(put.getContentText()).content.sha;
   var del = UrlFetchApp.fetch(api, {
@@ -307,8 +331,15 @@ function explainGhError(res, repo, doing, token) {
     lines.push('FIX: the token was rejected outright — mistyped, expired or revoked.');
     lines.push('     Check for a stray space, or generate a new token.');
   } else if (code === 403) {
-    lines.push('FIX: the token is real and can SEE the repo, but is not allowed to WRITE.');
-    lines.push('     Almost always this means Contents is still "Read-only" or "No access".');
+    lines.push('FIX: the token is real, but it lacks "Contents: Read and write".');
+    lines.push('');
+    lines.push('     GitHub requires, per endpoint:');
+    lines.push('       GET  /repos/{owner}/{repo}            -> Metadata: read');
+    lines.push('       GET  /repos/{owner}/{repo}/contents/  -> Contents: read');
+    lines.push('       PUT  /repos/{owner}/{repo}/contents/  -> Contents: WRITE   <- we need this');
+    lines.push('       DEL  /repos/{owner}/{repo}/contents/  -> Contents: WRITE');
+    lines.push('     A PUBLIC repo answers the read calls even with no permissions,');
+    lines.push('     which is why the earlier steps passed and this one did not.');
     lines.push('');
     if (kind === 'classic') {
       lines.push('     Classic token: it needs the "repo" scope ticked.');
@@ -318,12 +349,9 @@ function explainGhError(res, repo, doing, token) {
       lines.push('       1. https://github.com/settings/personal-access-tokens');
       lines.push('       2. Click your token');
       lines.push('       3. Repository access -> Only select repositories -> ' + repo);
-      lines.push('       4. Scroll to *Repository permissions* (not Account permissions)');
+      lines.push('       4. Scroll to *Repository permissions* (NOT Account permissions)');
       lines.push('       5. Contents  ->  Read and write');
-      lines.push('       6. Update token at the bottom');
-      lines.push('');
-      lines.push('     Note: "Metadata: Read" alone is enough to read the repo, which is');
-      lines.push('     why step 1 passed and this step did not.');
+      lines.push('       6. Update token at the bottom of the page');
     }
     lines.push('');
     lines.push('     Then Run INSTALL_GITHUB_UPLOADS again.');

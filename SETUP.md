@@ -290,12 +290,38 @@ the one repo, and only its files):
 6. **Generate token** and copy it — GitHub shows it only once.
 
 > **Step 5 is the one everybody gets wrong.** Scroll to *Repository*
-> permissions, not *Account* permissions. `Metadata: Read` is added
-> automatically and is enough to *read* the repo — which is why the installer's
-> first check can pass while the write check fails with
-> `403 Resource not accessible by personal access token`. If that happens you
-> don't need a new token: open the token, set **Contents → Read and write**,
-> press **Update token**, and run the installer again.
+> permissions, not *Account* permissions.
+
+#### Exactly which permission each call needs
+
+From GitHub's
+[permissions reference for fine-grained tokens](https://docs.github.com/en/rest/authentication/permissions-required-for-fine-grained-personal-access-tokens):
+
+| Call the uploader makes                     | Permission required |
+| ------------------------------------------- | ------------------- |
+| `GET /repos/{owner}/{repo}` — does it exist? | **Metadata: read**  |
+| `GET .../contents/{path}` — file already there? | **Contents: read**  |
+| `PUT .../contents/{path}` — **commit the image** | **Contents: write** |
+| `DELETE .../contents/{path}` — clean up the probe | **Contents: write** |
+
+Ticking **Contents: Read and write** covers all four — `write` includes `read`,
+and `Metadata: read` is added for you automatically.
+
+The same page notes that some endpoints *"can also be used to access public
+resources without these permissions."* Our repo is public, so the two read
+calls answer even for a token with no permissions at all. That is precisely why
+the installer's first checks pass while the commit fails with
+`403 Resource not accessible by personal access token` — **only the write test
+proves anything**, which is why the installer does a real test commit rather
+than trusting a read.
+
+If you hit that 403 you don't need a new token: open the token, set
+**Contents → Read and write**, press **Update token**, and run the installer
+again.
+
+Org-owned repos additionally need the token approved by an organisation owner.
+`mraadarshdubey/piranhavibes` is a personal repo, so that doesn't apply — the
+installer prints the owner type so you can confirm.
 
 **Stuck on the fine-grained screen?** A classic token also works and can be
 pre-filled in one click:
