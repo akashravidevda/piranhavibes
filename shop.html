@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shop All — Piranha Vibes</title>
+<meta name="description" content="Shop Marathi graphic t-shirts for kids, women and men plus eco-friendly canvas tote bags. Premium cotton, original designs, dispatched in 48 hours.">
+<link rel="icon" href="assets/img/brand/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<div id="pv-header"></div>
+
+<main>
+  <div class="wrap">
+    <nav class="crumbs"><a href="index.html">Home</a> <span>/</span> <span id="crumbNow">Shop</span></nav>
+  </div>
+
+  <div class="wrap page-hd">
+    <span class="eyebrow">The Catalogue</span>
+    <h1 class="d2" style="margin-top:14px" id="shopTitle">Shop All</h1>
+    <p class="lead" style="margin-top:14px" id="shopBlurb">Every design we make, in one place. Premium cotton, original Marathi typography, made in Pune.</p>
+  </div>
+
+  <div class="wrap sec-sm" style="padding-top:0">
+    <div class="shop-layout">
+
+      <aside class="filters" id="filters">
+        <div class="fgroup">
+          <h5>Category</h5>
+          <div id="fCats"></div>
+        </div>
+        <div class="fgroup">
+          <h5>Size</h5>
+          <div id="fSizes"></div>
+        </div>
+        <div class="fgroup">
+          <h5>Price</h5>
+          <div id="fPrice"></div>
+        </div>
+        <div class="fgroup">
+          <h5>Availability</h5>
+          <label class="fopt"><input type="checkbox" id="fStock"> In stock only</label>
+        </div>
+        <button class="btn btn-ghost btn-sm btn-block" id="fClear" style="margin-top:18px">Clear all filters</button>
+      </aside>
+
+      <div>
+        <div class="shop-bar">
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <button class="btn btn-ghost btn-sm f-toggle" id="fToggle">Filters</button>
+            <span class="muted tiny" id="resCount">Loading…</span>
+            <div id="activeChips" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center">
+            <label class="tiny muted" for="sortSel">Sort</label>
+            <select class="sel" id="sortSel">
+              <option value="featured">Featured</option>
+              <option value="new">Newest</option>
+              <option value="pl">Price: low to high</option>
+              <option value="ph">Price: high to low</option>
+              <option value="az">Name A–Z</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="p-grid" id="grid"></div>
+        <div id="noRes" class="hidden" style="text-align:center;padding:70px 20px">
+          <h3 class="d3">Nothing matches those filters</h3>
+          <p class="muted" style="margin:10px 0 20px">Try widening your price range or clearing a filter.</p>
+          <button class="btn btn-sm" id="noResClear">Clear filters</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<div id="pv-footer"></div>
+
+<script src="assets/js/config.js"></script>
+<script src="assets/js/data.js"></script>
+<script src="assets/js/app.js"></script>
+<script src="assets/js/shop.js"></script>
+</body>
+</html>

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Order Confirmed — Piranha Vibes</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="assets/img/brand/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<div id="pv-header"></div>
+
+<main>
+  <div class="wrap sec">
+    <div class="steps">
+      <div class="step done"><span class="n">✓</span> Bag</div><span class="step-sep"></span>
+      <div class="step done"><span class="n">✓</span> Details</div><span class="step-sep"></span>
+      <div class="step on"><span class="n">3</span> Confirm</div>
+    </div>
+    <div id="succRoot"></div>
+  </div>
+</main>
+
+<div id="pv-footer"></div>
+
+<script src="assets/js/config.js"></script>
+<script src="assets/js/data.js"></script>
+<script src="assets/js/app.js"></script>
+<script>
+(async function () {
+  const { $, esc, money, Store, qp, ICON, CFG, cardHTML, observe } = window.PV;
+  await Store.ready;
+  window.PV.mountChrome("");
+
+  const id = qp("id") || "";
+  let o = null;
+  try { o = JSON.parse(sessionStorage.getItem("pv_last_order") || "null"); } catch (e) {}
+  if (o && id && o.id !== id) o = null;
+
+  const eta = new Date(Date.now() + 5 * 864e5).toLocaleDateString("en-IN", {
+    weekday: "short", day: "numeric", month: "short",
+  });
+
+  $("#succRoot").innerHTML = `
+<div class="succ">
+  <div class="succ-mark"><svg viewBox="0 0 24 24"><path d="m4 12 6 6L20 6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+  <span class="eyebrow center" style="justify-content:center">Order received</span>
+  <h1 class="d2" style="margin:16px 0 12px">Thank you${o ? ", " + esc(o.name.split(" ")[0]) : ""}!</h1>
+  <p class="lead" style="margin-inline:auto">Your order is in. We'll send a confirmation to your email and dispatch it from our Pune studio within 48 hours.</p>
+  <div class="oid">${esc(id || "—")}</div>
+  ${o && o.offline ? `<p class="tiny" style="color:var(--gold)">Saved on this device. Please share this ID with us on WhatsApp so we can confirm it.</p>` : ""}
+  <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:6px">
+    <a class="btn" href="track.html?id=${encodeURIComponent(id)}">Track this order</a>
+    <a class="btn btn-ghost" href="shop.html">Keep shopping</a>
+    <a class="btn btn-ghost" target="_blank" rel="noopener"
+       href="https://wa.me/${CFG.WHATSAPP}?text=${encodeURIComponent("Hi! My order ID is " + id)}">Confirm on WhatsApp</a>
+  </div>
+</div>
+
+${o ? `
+<div class="co-grid" style="margin-top:clamp(36px,5vw,60px)">
+  <div class="card">
+    <h3 class="d3" style="font-size:1.2rem;margin-bottom:16px">What you ordered</h3>
+    ${o.items.map(i => `<div class="mini-item">
+      <div style="flex:1"><b>${esc(i.name)}</b>
+        <div class="tiny muted">${[i.size, i.color].filter(Boolean).join(" · ")} · Qty ${i.qty} · ${esc(i.sku)}</div></div>
+      <div style="font-weight:600">${money(i.lineTotal)}</div></div>`).join("")}
+    <div class="sum-row" style="margin-top:14px"><span>Subtotal</span><span>${money(o.subtotal)}</span></div>
+    ${o.discount ? `<div class="sum-row" style="color:var(--green)"><span>Discount</span><span>− ${money(o.discount)}</span></div>` : ""}
+    <div class="sum-row"><span>Shipping</span><span>${o.shipping ? money(o.shipping) : "Free"}</span></div>
+    ${o.codFee ? `<div class="sum-row"><span>COD handling</span><span>${money(o.codFee)}</span></div>` : ""}
+    <div class="sum-row total"><span>Total</span><span>${money(o.total)}</span></div>
+    <p class="tiny muted" style="margin-top:10px">Payment: <b>${esc(o.paymentMethod === "COD" ? "Cash on delivery" : "UPI — " + o.txnRef)}</b></p>
+  </div>
+  <aside class="co-side">
+    <div class="card">
+      <h3 class="d3" style="font-size:1.2rem;margin-bottom:16px">Delivering to</h3>
+      <p style="font-size:.94rem;line-height:1.75">
+        <b>${esc(o.name)}</b><br>
+        ${esc(o.addr1)}${o.addr2 ? "<br>" + esc(o.addr2) : ""}<br>
+        ${o.landmark ? "Near " + esc(o.landmark) + "<br>" : ""}
+        ${esc(o.city)}, ${esc(o.state)} — ${esc(o.pincode)}<br>
+        ${esc(o.phone)} · ${esc(o.email)}
+      </p>
+      <div style="border-top:1px solid var(--line);margin:16px 0;padding-top:16px">
+        <div class="tick">${ICON.truck}<p><b>Estimated delivery</b>By ${eta}</p></div>
+        <div class="tick">${ICON.refresh}<p><b>Changed your mind?</b>Easy return or exchange within 7 days.</p></div>
+      </div>
+      <p class="tiny muted">Questions? Email ${CFG.EMAIL} or call ${CFG.PHONE} with your order ID.</p>
+    </div>
+  </aside>
+</div>` : ""}
+
+<section class="sec-sm">
+  <div class="sec-head"><div class="t"><span class="eyebrow">Before you go</span>
+    <h2 class="d3" style="margin-top:12px">Pieces our customers pair together</h2></div></div>
+  <div class="p-grid stagger">${Store.products.filter(p => p.active && p.featured && p.stock > 0).slice(0, 4).map(cardHTML).join("")}</div>
+</section>`;
+  observe();
+})();
+</script>
+</body>
+</html>

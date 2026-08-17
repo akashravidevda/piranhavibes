@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Track Your Order — Piranha Vibes</title>
+<link rel="icon" href="assets/img/brand/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<div id="pv-header"></div>
+
+<main>
+  <div class="wrap">
+    <nav class="crumbs"><a href="index.html">Home</a> <span>/</span> <span>Track order</span></nav>
+    <div class="page-hd">
+      <span class="eyebrow">Order status</span>
+      <h1 class="d2" style="margin-top:14px">Track your order</h1>
+      <p class="lead" style="margin-top:14px">Enter the order ID from your confirmation along with the mobile number you ordered with.</p>
+    </div>
+  </div>
+
+  <div class="wrap sec-sm" style="padding-top:0;max-width:820px">
+    <div class="card">
+      <form id="trackForm" novalidate>
+        <div class="grid2">
+          <div class="field"><label for="oid">Order ID</label><input id="oid" placeholder="PV260817-A4K9" style="text-transform:uppercase"><span class="msg">Enter your order ID</span></div>
+          <div class="field"><label for="ophone">Mobile number</label><input id="ophone" inputmode="numeric" maxlength="10" placeholder="10-digit number"><span class="msg">Enter the mobile number used at checkout</span></div>
+        </div>
+        <button class="btn btn-block" type="submit" id="trackBtn">Track order</button>
+      </form>
+    </div>
+
+    <div id="trackRes" style="margin-top:22px"></div>
+
+    <div id="myOrders" style="margin-top:34px"></div>
+  </div>
+</main>
+
+<div id="pv-footer"></div>
+
+<script src="assets/js/config.js"></script>
+<script src="assets/js/data.js"></script>
+<script src="assets/js/app.js"></script>
+<script>
+(async function () {
+  const { $, esc, money, Store, qp, read, LS, ICON, trackOrder, toast, CFG } = window.PV;
+  await Store.ready;
+  window.PV.mountChrome("");
+
+  const STAGES = ["New", "Confirmed", "Packed", "Shipped", "Delivered"];
+
+  function timeline(status) {
+    const i = STAGES.indexOf(status);
+    if (String(status).toLowerCase() === "cancelled")
+      return `<p style="color:var(--red);font-weight:600">This order was cancelled. Contact us if that's unexpected.</p>`;
+    return `<div style="display:flex;flex-direction:column;gap:0;margin-top:8px">
+      ${STAGES.map((s, k) => {
+        const done = k <= (i < 0 ? 0 : i);
+        return `<div style="display:flex;gap:14px;align-items:flex-start">
+          <div style="display:flex;flex-direction:column;align-items:center">
+            <span style="width:22px;height:22px;border-radius:50%;display:grid;place-items:center;flex-shrink:0;
+              background:${done ? "var(--green)" : "var(--sand)"};color:#fff;font-size:.7rem">${done ? "✓" : ""}</span>
+            ${k < STAGES.length - 1 ? `<span style="width:2px;height:34px;background:${k < i ? "var(--green)" : "var(--sand)"}"></span>` : ""}
+          </div>
+          <div style="padding-bottom:${k < STAGES.length - 1 ? "14px" : "0"}">
+            <b style="font-size:.94rem;color:${done ? "var(--tx)" : "var(--tx-3)"}">${s}</b>
+            <div class="tiny muted">${
+              ["Order received and queued", "Payment/COD confirmed by our team", "Packed and labelled at the Pune studio", "Handed to the courier partner", "Delivered to your address"][k]
+            }</div>
+          </div>
+        </div>`;
+      }).join("")}
+    </div>`;
+  }
+
+  function renderOrder(o, local) {
+    $("#trackRes").innerHTML = `
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:center;margin-bottom:18px">
+          <div>
+            <span class="pc-cat">Order</span>
+            <h2 class="d3" style="font-family:var(--mono);font-size:1.25rem;margin-top:4px">${esc(o.id)}</h2>
+            <p class="tiny muted">Placed ${new Date(o.createdAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}</p>
+          </div>
+          <span class="pill ${STAGES.concat("Cancelled").indexOf(o.status) > -1 ? esc(String(o.status).toLowerCase()) : "packed"}">${esc(o.status)}</span>
+        </div>
+        ${timeline(o.status)}
+        ${o.items && o.items.length ? `<div style="border-top:1px solid var(--line);margin-top:20px;padding-top:16px">
+          ${o.items.map(i => `<div class="mini-item"><div style="flex:1"><b>${esc(i.name)}</b>
+            <div class="tiny muted">${[i.size, i.color].filter(Boolean).join(" · ")} · Qty ${i.qty}</div></div>
+            <div style="font-weight:600">${money(i.lineTotal || i.price * i.qty)}</div></div>`).join("")}
+        </div>` : ""}
+        <div class="sum-row total"><span>Order total</span><span>${money(o.total)}</span></div>
+        ${o.trackingId ? `<p class="tiny" style="margin-top:10px">Courier tracking: <b>${esc(o.trackingId)}</b>${o.courier ? " · " + esc(o.courier) : ""}</p>` : ""}
+        ${local ? `<p class="tiny" style="color:var(--gold);margin-top:10px">Showing the copy saved on this device. Live status may differ — WhatsApp us for the latest.</p>` : ""}
+        <a class="btn btn-ghost btn-sm" style="margin-top:16px" target="_blank" rel="noopener"
+           href="https://wa.me/${CFG.WHATSAPP}?text=${encodeURIComponent("Hi! Status update for order " + o.id + "?")}">Ask about this order</a>
+      </div>`;
+    $("#trackRes").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  async function doTrack(id, phone) {
+    const btn = $("#trackBtn");
+    btn.classList.add("btn-loading");
+    const r = await trackOrder(id, phone);
+    btn.classList.remove("btn-loading");
+    if (r.ok) renderOrder(r.order, r.local);
+    else {
+      $("#trackRes").innerHTML = `<div class="card" style="text-align:center">
+        <p style="font-weight:600;margin-bottom:6px">We couldn't find that order</p>
+        <p class="muted tiny">Double-check the ID and the mobile number you used. Still stuck? WhatsApp us on ${CFG.PHONE}.</p></div>`;
+    }
+  }
+
+  $("#ophone").addEventListener("input", e => e.target.value = e.target.value.replace(/\D/g, ""));
+
+  $("#trackForm").addEventListener("submit", e => {
+    e.preventDefault();
+    const id = $("#oid").value.trim();
+    const ph = $("#ophone").value.trim();
+    $("#oid").closest(".field").classList.toggle("err", !id);
+    $("#ophone").closest(".field").classList.toggle("err", ph.length !== 10);
+    if (!id || ph.length !== 10) return;
+    doTrack(id, ph);
+  });
+
+  /* saved orders on this device */
+  const mine = read(LS.orders, []);
+  if (mine.length) {
+    $("#myOrders").innerHTML = `
+      <h3 class="d3" style="margin-bottom:14px">Orders from this device</h3>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Order ID</th><th>Date</th><th>Items</th><th>Total</th><th></th></tr></thead>
+        <tbody>${mine.map(o => `<tr>
+          <td style="font-family:var(--mono)">${esc(o.id)}</td>
+          <td>${new Date(o.at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</td>
+          <td>${(o.items || []).reduce((s, i) => s + i.qty, 0)}</td>
+          <td>${money(o.total)}</td>
+          <td><button class="btn btn-sm" data-look="${esc(o.id)}" data-ph="${esc(o.phone)}">View</button></td>
+        </tr>`).join("")}</tbody>
+      </table></div>`;
+    $("#myOrders").addEventListener("click", e => {
+      const b = e.target.closest("[data-look]");
+      if (!b) return;
+      $("#oid").value = b.dataset.look;
+      $("#ophone").value = String(b.dataset.ph).slice(-10);
+      doTrack(b.dataset.look, b.dataset.ph);
+    });
+  }
+
+  const preId = qp("id");
+  if (preId) {
+    $("#oid").value = preId;
+    const hit = mine.find(o => o.id === preId);
+    if (hit) { $("#ophone").value = String(hit.phone).slice(-10); doTrack(preId, hit.phone); }
+  }
+})();
+</script>
+</body>
+</html>

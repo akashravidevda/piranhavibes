@@ -1,0 +1,383 @@
+# Piranha Vibes — Setup Guide
+
+The site works **immediately** with no setup: open `index.html` and everything
+(browsing, cart, checkout) runs on the built-in catalogue. Follow this guide to
+connect Google Sheets so orders, pricing and stock become live and manageable.
+
+Total time: about 10 minutes.
+
+---
+
+## Part 1 — Run the site locally
+
+The site is plain HTML/CSS/JS. It needs a tiny web server (not `file://`) so the
+pages can talk to each other properly.
+
+**Option A — Python** (already installed on most machines)
+
+```bash
+cd piranha-vibes && python -m http.server 5199
+```
+
+**Option B — Node**
+
+```bash
+npx serve piranha-vibes -l 5199
+```
+
+Then open <http://localhost:5199>.
+
+Admin console: <http://localhost:5199/admin.html>
+
+---
+
+## Part 2 — Create the Google Sheet database
+
+1. Go to <https://sheets.new> and create a blank spreadsheet.
+   Name it something like **Piranha Vibes — Store DB**.
+2. Menu: **Extensions ▸ Apps Script**. A code editor opens in a new tab.
+3. Delete everything in `Code.gs`.
+4. Open `google-apps-script/Code.gs` from this project, copy the **entire**
+   file, and paste it into the Apps Script editor.
+5. Click the **save** icon (or `Ctrl+S`).
+
+### Set your admin key
+
+1. In Apps Script, click the **gear icon (Project Settings)** in the left rail.
+2. Scroll to **Script Properties ▸ Add script property**.
+3. Add these two:
+
+   | Property       | Value                                      |
+   | -------------- | ------------------------------------------ |
+   | `ADMIN_KEY`    | any strong password you choose             |
+   | `NOTIFY_EMAIL` | `piranhavibes@gmail.com` *(optional)*      |
+
+   `ADMIN_KEY` is what you type to log into `admin.html`. Choose something long
+   — anyone with this key can change prices and read customer orders.
+   `NOTIFY_EMAIL` gets an email every time an order comes in. Leave it out if
+   you don't want emails.
+
+4. Click **Save script properties**.
+
+### If you created the script at script.google.com instead
+
+A script made from <https://script.google.com> is *standalone* — it isn't
+attached to any spreadsheet, so `SpreadsheetApp.getActiveSpreadsheet()` returns
+nothing. The script handles this, you just need to tell it which sheet to use:
+
+- **Easiest** — add nothing. Run `setup` and it creates a spreadsheet called
+  **"Piranha Vibes — Store DB"** in your Drive and remembers it. The
+  execution log prints the link; you can also run the `openDatabase` function
+  any time to get it again.
+- **Or point it at an existing sheet** — add a Script Property `SHEET_ID` with
+  the long ID from the spreadsheet's URL:
+  `docs.google.com/spreadsheets/d/`**`THIS_PART`**`/edit`
+
+> Seeing **`TypeError: Cannot read properties of null (reading 'getSheetByName')`**?
+> That's exactly this situation, on an older copy of `Code.gs`. Re-copy the
+> current `google-apps-script/Code.gs` over your script and run `setup` again.
+
+### Build the sheets
+
+1. Back in the **Editor**, pick `setup` from the function dropdown at the top.
+2. Click **Run**.
+3. Google will ask for permission — click **Review permissions**, pick your
+   account, then **Advanced ▸ Go to (project name) (unsafe) ▸ Allow**.
+   (This warning appears for every personal Apps Script; it is your own script.)
+4. Open the spreadsheet. You should now see 7 sheets:
+   **Products** (31 rows seeded), **Orders**, **OrderItems**, **Settings**,
+   **Coupons**, **Contacts**, **Subscribers**.
+   If the script created the sheet for you, its link is in the **Execution log**
+   at the bottom of the editor.
+
+---
+
+## Part 3 — Publish the API
+
+1. In Apps Script click **Deploy ▸ New deployment**.
+2. Click the gear next to "Select type" and choose **Web app**.
+3. Fill in:
+   - **Description**: `Piranha Vibes API v1`
+   - **Execute as**: **Me**
+   - **Who has access**: **Anyone**   ← must be "Anyone", not "Anyone with Google account"
+4. Click **Deploy**, approve if asked, then **copy the Web app URL**.
+   It looks like `https://script.google.com/macros/s/AKfycb..../exec`.
+
+## Part 4 — Connect the site
+
+Open `assets/js/config.js` and paste the URL:
+
+```js
+API_URL: "https://script.google.com/macros/s/AKfycb..../exec",
+```
+
+Save, reload the site. Done — the store is now reading from your Sheet.
+
+To confirm: open `admin.html`, sign in with your `ADMIN_KEY`. The orange
+"Offline preview" banner should be gone and the Settings tab should say
+**Connected to Google Sheets**.
+
+> **Whenever you edit `Code.gs` later**, you must re-deploy:
+> **Deploy ▸ Manage deployments ▸ pencil icon ▸ Version: New version ▸ Deploy**.
+> The URL stays the same, so you don't need to change `config.js` again.
+
+---
+
+## Part 5 — Day-to-day use
+
+### Admin console (`admin.html`)
+
+| Tab            | What you can do                                                                     |
+| -------------- | ----------------------------------------------------------------------------------- |
+| **Dashboard**  | Revenue, orders today, pending fulfilment, 14-day revenue chart, top sellers, low-stock alerts |
+| **Orders**     | Filter by status, search, change status, open an order for full details, add courier + tracking ID, WhatsApp the customer, print an invoice, export CSV |
+| **Products**   | Edit price / MRP / stock / badge / featured / visibility inline for many products at once, then hit **Save changes**. Add new products, edit full details, delete |
+| **Coupons**    | Create and remove discount codes (percentage or flat, with a minimum order) |
+| **Settings**   | Shipping fee, free-shipping threshold, COD on/off, COD fee, tax %, UPI ID, announcement-bar text |
+
+Every save writes straight into the Google Sheet — you can also just edit the
+Sheet by hand and the site picks it up.
+
+### Admin access
+
+The admin key is checked by the Apps Script backend, never by this website.
+It lives in **exactly one place**: Apps Script ▸ Project Settings ▸ Script
+Properties ▸ `ADMIN_KEY`.
+
+> **Never write the key into a file in this project.** `config.js`, `SETUP.md`
+> and every other file here get published with the site — anything typed into
+> them is readable by the whole internet. The key belongs only in Script
+> Properties, which lives inside your Google account.
+
+To change it: edit `ADMIN_KEY` in Script Properties and save. It takes effect
+instantly and every signed-in session stops working on its next action — no
+redeploy needed.
+
+What the login screen does for you:
+
+- **Wrong key** — refuses entry and counts down remaining attempts.
+- **5 wrong attempts** — locks the form for 60 seconds.
+- **Backend unreachable** — it will *not* quietly let you in. You get an
+  explicit "Continue in offline preview" button, and that mode only ever shows
+  the local seed catalogue and orders placed on this device.
+- **"Keep me signed in"** — off by default. Leave it off on shared computers;
+  when it's on, the key is stored in that browser until you sign out.
+- **Idle for 30 minutes** — signs you out automatically.
+
+### Order statuses
+
+`New → Confirmed → Packed → Shipped → Delivered` (plus `Cancelled`).
+Customers see this exact progress on `track.html`.
+
+### Stock
+
+Stock is decremented automatically when an order is placed. A product with
+stock `0` shows as **Sold out** and cannot be added to the bag. Products at or
+below 5 units show an "Only N left" nudge and appear in the dashboard's
+low-stock alerts.
+
+### Adding a new product
+
+1. Admin ▸ Products ▸ **+ New product**.
+2. Type the name, then **drop the product photo onto the image box** (or click
+   it to browse). The image is resized, converted to WebP and uploaded
+   automatically — see the next section.
+3. Fill in price, stock, sizes and colours, then **Create product**.
+
+You can also skip the uploader and type an image path or any public image URL
+into the "Image path or URL" field by hand.
+
+---
+
+## Product image uploads
+
+When you add a product from the admin panel, the photo has to end up somewhere
+public. The uploader handles this for you, and **no credential ever reaches the
+browser or the published site** — the secrets live in Apps Script Script
+Properties, inside your own Google account.
+
+Before uploading, the browser resizes the image to 1200 px on its longest edge
+and re-encodes it as WebP (usually 30–120 KB), so nothing bloats.
+
+There are two backends. You don't choose in code — the script picks
+automatically.
+
+### Option A — Google Drive (default, nothing to set up)
+
+If you set no GitHub properties, images are saved to a Drive folder called
+**"Piranha Vibes — Product Images"**, shared as link-public, and served from
+Google's image CDN. It works instantly, costs nothing, and needs no tokens at
+all.
+
+Good when you want zero setup. The image lives outside your repo, so it isn't
+version-controlled with the rest of the site.
+
+### Option B — commit straight into your GitHub repo
+
+This is what you want if the whole project lives on GitHub. Every uploaded
+image becomes a real commit in `assets/img/products/`, exactly like the 31
+seeded photos.
+
+**1. Create a fine-grained token** (this is the safest kind — it can only touch
+the one repo, and only its files):
+
+1. Go to <https://github.com/settings/personal-access-tokens/new>
+2. **Token name**: `piranha-vibes-image-upload`
+3. **Expiration**: 1 year (set a calendar reminder to rotate it)
+4. **Repository access** ▸ **Only select repositories** ▸ pick your store repo
+5. **Repository permissions** ▸ find **Contents** ▸ set to **Read and write**
+   *(leave every other permission as "No access")*
+6. **Generate token** and copy it — GitHub shows it only once.
+
+**2. Add it to Apps Script** ▸ Project Settings ▸ Script Properties:
+
+| Property       | Value                          | Notes                              |
+| -------------- | ------------------------------ | ---------------------------------- |
+| `GH_TOKEN`     | the token you just copied      | required                           |
+| `GH_REPO`      | `your-username/your-repo`      | required                           |
+| `GH_BRANCH`    | `main`                         | optional, defaults to `main`       |
+| `GH_IMAGE_DIR` | `assets/img/products`          | optional                           |
+| `GH_IMAGE_URL` | `relative`                     | optional — see below               |
+
+**3. Re-authorise and re-deploy.** Committing to GitHub means the script now
+makes external requests, which is a new permission. In the Apps Script editor,
+run `setup` once more and approve the new prompt. Then
+**Deploy ▸ Manage deployments ▸ pencil ▸ New version ▸ Deploy**.
+
+**4. Check it.** Admin ▸ Settings ▸ *Product image storage* should now read
+**Backend: GitHub** with your repo name.
+
+#### `GH_IMAGE_URL` — how the image is linked
+
+| Value                 | Stored in the sheet                              | Behaviour                                                                 |
+| --------------------- | ------------------------------------------------ | ------------------------------------------------------------------------- |
+| `relative` *(default)* | `assets/img/products/my-tee.webp`                | Cleanest and fastest once live. Appears on the site after GitHub Pages rebuilds — usually under a minute. Won't resolve on `localhost`, because the file only exists in the repo. |
+| `raw`                 | `https://raw.githubusercontent.com/…/my-tee.webp` | Visible instantly everywhere, including local testing. Slightly slower to load, no long-term caching. |
+| `jsdelivr`            | `https://cdn.jsdelivr.net/gh/…/my-tee.webp`       | Served from a global CDN. Fast, but new files can take a few minutes to appear. |
+
+If you're testing a lot before launch, set it to `raw`; switch to `relative`
+once the site is live on Pages. Changing it only affects *future* uploads —
+images already added keep whichever URL they were saved with.
+
+> **A note on the token.** You are not sharing it with anyone — you paste it
+> into your own Apps Script project. It is never written into `config.js`,
+> never sent to a visitor's browser, and never committed to the repo. If it
+> ever leaks, delete it at
+> <https://github.com/settings/personal-access-tokens> and generate a new one;
+> because it is scoped to Contents on a single repo, that is the entire blast
+> radius.
+
+---
+
+## Sheet columns reference
+
+You can also add a row directly in the **Products** sheet — the columns are:
+
+```
+sku | slug | name | category | price | mrp | stock | sizes | colors |
+badge | featured | active | image | desc
+```
+
+`sizes` and `colors` are pipe-separated: `S|M|L|XL`. `featured` and `active`
+are `1` or `0`. `mrp` shows as a struck-through "was" price — leave it `0` to
+hide it. Valid `category` values: `kids`, `women`, `men`, `tote`, `yoga`,
+`infant`.
+
+---
+
+## Part 6 — Going live on a real domain
+
+The site is fully static, so any static host works — no server needed.
+
+- **Netlify / Vercel / Cloudflare Pages** — drag the `piranha-vibes` folder onto
+  their dashboard, or connect a Git repo. Free tier is plenty.
+- **GitHub Pages** — push the folder, then Settings ▸ Pages ▸ deploy from branch.
+- **Your existing hosting** — upload the folder over FTP.
+
+Then point `www.piranhavibes.com` at the host and add the SSL certificate
+(automatic on all three services above).
+
+### Before you launch
+
+- [ ] Set `ADMIN_KEY` to something long and unguessable — not a name, not a
+      date, not a phone number. `admin.html` sits at a public URL, so this key
+      is the only thing between the internet and your orders and pricing. A
+      passphrase of four random words, or 16+ mixed characters, is the bar.
+- [ ] Set your real UPI ID in Admin ▸ Settings.
+- [ ] Check shipping fee and free-shipping threshold.
+- [ ] Update the Instagram / Facebook URLs in `assets/js/config.js`.
+- [ ] Place one live test order end-to-end and confirm the Sheet row appears.
+
+### A note on security
+
+`admin.html` is protected by the admin key, but the *page file itself* is
+public on a static host — anyone can open the login screen. Every read of
+orders and every write to pricing or stock is verified against `ADMIN_KEY` by
+the Apps Script backend, so the login screen alone gives nothing away.
+
+That makes the key the whole defence. Two rules:
+
+1. **It must not be guessable.** Someone who knows the brand will try the owner's
+   name, the shop name, and dates. Use random words or a generated string.
+2. **It must never enter this repository.** No `config.js`, no README, no
+   commit message, no screenshot. Script Properties only.
+
+If you suspect it leaked, change `ADMIN_KEY` in Script Properties — every
+existing session stops working immediately, no redeploy required.
+
+---
+
+## Troubleshooting
+
+**"Offline preview" banner won't go away**
+`API_URL` is empty or wrong in `config.js`, or the deployment's *Who has
+access* isn't set to **Anyone**. Open the `/exec` URL directly in a browser —
+you should see `{"ok":true,"service":"Piranha Vibes API","version":1}`.
+
+**Orders aren't reaching the Sheet**
+The customer still gets an order ID (it's saved on their device so nothing is
+lost), and the success page tells them to confirm on WhatsApp. Re-deploy the
+script as a **new version** and check the access setting.
+
+**Price changes don't show on the site**
+The catalogue is cached in the browser for 5 minutes. Hit **Refresh** in the
+admin sidebar, or wait it out. Change `CACHE_MINUTES` in `config.js` to make it
+shorter.
+
+**`TypeError: Cannot read properties of null (reading 'getSheetByName')`**
+The script is standalone (made at script.google.com) rather than bound to a
+Sheet. Use the current `Code.gs` — it creates the spreadsheet for you on the
+first `setup` run, or uses the `SHEET_ID` script property if you set one. See
+*"If you created the script at script.google.com instead"* above.
+
+**`SHEET_ID is set but that spreadsheet could not be opened`**
+The value must be only the ID, not the whole URL — the part between `/d/` and
+`/edit`. Also check the sheet isn't in someone else's Drive or in the trash.
+
+**I can't find the spreadsheet the script created**
+In the Apps Script editor, run the `openDatabase` function and read the
+**Execution log** — it prints the URL. Or search Drive for
+"Piranha Vibes — Store DB".
+
+**Image upload says "GitHub upload failed (404)"**
+`GH_REPO` is wrong, the branch doesn't exist, or the token wasn't given access
+to that repository. `GH_REPO` must be `owner/repo` with no `https://` and no
+`.git`.
+
+**Image upload says "(401)" or "(403)"**
+The token is expired, mistyped, or missing the **Contents: Read and write**
+permission. Generate a fresh one and update `GH_TOKEN`.
+
+**Image uploads to Drive even though I set GH_TOKEN**
+You added the properties but didn't re-deploy a **new version**, so the live
+web app is still running the old code. Also re-run `setup` once to approve the
+external-request permission.
+
+**Uploaded image doesn't show on the site yet**
+With `GH_IMAGE_URL=relative` the image appears once GitHub Pages finishes
+rebuilding — check the Actions tab of your repo. For instant display, set
+`GH_IMAGE_URL` to `raw`.
+
+**"Invalid or missing admin key"**
+`ADMIN_KEY` in Script Properties doesn't match what you typed. It is
+case-sensitive. Re-check for stray spaces.
