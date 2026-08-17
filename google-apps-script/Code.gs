@@ -279,8 +279,7 @@ function health() {
     ok: true,
     version: API_VERSION,
     adminKeySet: !!props.getProperty('ADMIN_KEY'),
-    imageBackend: (props.getProperty('GH_TOKEN') && props.getProperty('GH_REPO'))
-      ? 'github' : 'drive',
+    imageBackend: ghReady() ? 'github' : 'none',
     sheetOk: false,
     productCount: 0
   };
@@ -307,9 +306,9 @@ function diagnose() {
       ? 'SET (' + String(key).length + ' characters)'
       : '*** NOT SET — the admin panel cannot log in ***'),
     'NOTIFY_EMAIL        : ' + (props.getProperty('NOTIFY_EMAIL') || 'not set (no order emails)'),
-    'Image uploads go to : ' + ((props.getProperty('GH_TOKEN') && props.getProperty('GH_REPO'))
-      ? 'GitHub — ' + props.getProperty('GH_REPO')
-      : 'Google Drive (GH_TOKEN / GH_REPO not set)')
+    'Image uploads      : ' + (ghReady()
+      ? 'GitHub — ' + props.getProperty('GH_REPO') + ' (' + ghConfig().branch + ')'
+      : '*** DISABLED — set GH_TOKEN and GH_REPO to enable ***')
   ];
   try {
     var book = ss();
@@ -721,29 +720,23 @@ function updateSettings(d) {
    IMAGE UPLOAD
    ----------------------------------------------------------
    The admin panel sends a compressed image as base64. This
-   function stores it and returns a public URL, WITHOUT the
-   browser ever seeing a credential — everything below reads
-   its secrets from Script Properties, which live inside your
-   own Google account and are never sent to the client.
+   commits it into your GitHub repo and returns a public URL,
+   WITHOUT the browser ever seeing a credential — the token is
+   read from Script Properties, which live inside your own
+   Google account and are never sent to the client.
 
-   Two backends, picked automatically:
-
-   A) GitHub  — used when GH_TOKEN + GH_REPO are set. Commits
-      the file straight into your repo, so the image is part of
-      the codebase exactly like the seeded product photos.
-
-   B) Google Drive — the fallback when no GitHub token is set.
-      Zero extra credentials: the script already has access to
-      your Drive. The file is made link-public and served from
-      Google's image CDN.
-
-   Script Properties for the GitHub route:
+   Script Properties:
      GH_TOKEN     fine-grained PAT, Contents: Read & Write,
                   scoped to the one repo (see SETUP.md)
      GH_REPO      "your-username/your-repo"
      GH_BRANCH    default "main"
      GH_IMAGE_DIR default "assets/img/products"
-     GH_IMAGE_URL "relative" (default) | "raw" | "jsdelivr"
+     GH_IMAGE_URL "raw" (default, shows instantly)
+                  | "relative" (fastest once Pages rebuilds)
+                  | "jsdelivr" (CDN, public repos only)
+
+   Without GH_TOKEN + GH_REPO, uploads are refused with a clear
+   message rather than saved somewhere that renders broken.
    ========================================================== */
 
 function ghConfig() {
@@ -753,8 +746,13 @@ function ghConfig() {
     repo: p.getProperty('GH_REPO'),
     branch: p.getProperty('GH_BRANCH') || 'main',
     dir: (p.getProperty('GH_IMAGE_DIR') || 'assets/img/products').replace(/^\/|\/$/g, ''),
-    urlMode: p.getProperty('GH_IMAGE_URL') || 'relative'
+    urlMode: p.getProperty('GH_IMAGE_URL') || 'raw'
   };
+}
+
+function ghReady() {
+  var g = ghConfig();
+  return !!(g.token && g.repo);
 }
 
 function storageStatus() {
@@ -763,7 +761,7 @@ function storageStatus() {
   try { url = ss().getUrl(); } catch (e) {}
   return {
     ok: true,
-    backend: (g.token && g.repo) ? 'github' : 'drive',
+    backend: ghReady() ? 'github' : 'none',
     repo: g.repo || '',
     branch: g.branch,
     dir: g.dir,
@@ -784,11 +782,18 @@ function safeFileName(name) {
 
 function uploadImage(d) {
   if (!d || !d.base64) return { ok: false, error: 'No image data received' };
+  if (!ghReady()) {
+    return {
+      ok: false,
+      needsSetup: true,
+      error:
+        'Image uploads need GitHub. Add GH_TOKEN and GH_REPO in Apps Script ▸ ' +
+        'Project Settings ▸ Script Properties, then try again. ' +
+        'See "Product image uploads" in SETUP.md.'
+    };
+  }
   var name = safeFileName(d.filename || 'product.webp');
-  var mime = d.mime || 'image/webp';
-  var g = ghConfig();
-  return (g.token && g.repo) ? uploadToGitHub(name, d.base64, g)
-                             : uploadToDrive(name, d.base64, mime);
+  return uploadToGitHub(name, d.base64, ghConfig());
 }
 
 /* ---------- A. GitHub ---------- */
@@ -848,28 +853,13 @@ function uploadToGitHub(name, base64, g) {
   };
 }
 
-/* ---------- B. Google Drive ---------- */
-function uploadToDrive(name, base64, mime) {
-  var folderName = 'Piranha Vibes — Product Images';
-  var it = DriveApp.getFoldersByName(folderName);
-  var folder = it.hasNext() ? it.next() : DriveApp.createFolder(folderName);
-
-  // Replace an existing file of the same name so re-uploads don't pile up.
-  var existing = folder.getFilesByName(name);
-  while (existing.hasNext()) existing.next().setTrashed(true);
-
-  var blob = Utilities.newBlob(Utilities.base64Decode(base64), mime, name);
-  var file = folder.createFile(blob);
-  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-
-  var id = file.getId();
-  return {
-    ok: true, backend: 'drive',
-    url: 'https://lh3.googleusercontent.com/d/' + id + '=w1200',
-    path: folderName + '/' + name,
-    note: 'Saved to your Google Drive and shared publicly. Add GH_TOKEN + GH_REPO in Script Properties to commit images to GitHub instead.'
-  };
-}
+/*  Why there is no Google Drive fallback
+    -------------------------------------
+    An earlier version saved uploads to a public Drive folder. Those files
+    fetch fine with curl but Google blocks them when a browser requests them
+    from another site, so every product image rendered as a broken image.
+    A silent half-failure is worse than a clear refusal, so uploads now
+    require GitHub and say so plainly when it isn't configured.            */
 
 /* ==========================================================
    SEED CATALOGUE — mirrors assets/js/data.js

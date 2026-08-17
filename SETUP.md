@@ -247,24 +247,20 @@ Properties, inside your own Google account.
 Before uploading, the browser resizes the image to 1200 px on its longest edge
 and re-encodes it as WebP (usually 30–120 KB), so nothing bloats.
 
-There are two backends. You don't choose in code — the script picks
-automatically.
+Uploads go into your GitHub repo. Until `GH_TOKEN` and `GH_REPO` are set, the
+uploader is switched off and says so — you can still type an image path or URL
+into the product editor by hand, and everything else works normally.
 
-### Option A — Google Drive (default, nothing to set up)
+> **Why there's no Google Drive option.** An earlier build saved uploads to a
+> public Drive folder. Those files download fine with `curl`, but Google blocks
+> them when a browser requests them from another website, so every product
+> image rendered as a broken image. It was removed rather than left as a
+> fallback that quietly produces a broken storefront.
 
-If you set no GitHub properties, images are saved to a Drive folder called
-**"Piranha Vibes — Product Images"**, shared as link-public, and served from
-Google's image CDN. It works instantly, costs nothing, and needs no tokens at
-all.
+### Commit straight into your GitHub repo
 
-Good when you want zero setup. The image lives outside your repo, so it isn't
-version-controlled with the rest of the site.
-
-### Option B — commit straight into your GitHub repo
-
-This is what you want if the whole project lives on GitHub. Every uploaded
-image becomes a real commit in `assets/img/products/`, exactly like the 31
-seeded photos.
+Every uploaded image becomes a real commit in `assets/img/products/`, exactly
+like the 31 seeded photos.
 
 **1. Create a fine-grained token** (this is the safest kind — it can only touch
 the one repo, and only its files):
@@ -285,7 +281,7 @@ the one repo, and only its files):
 | `GH_REPO`      | `mraadarshdubey/piranhavibes`      | required                     |
 | `GH_BRANCH`    | `main`                             | optional, defaults to `main` |
 | `GH_IMAGE_DIR` | `assets/img/products`              | optional                     |
-| `GH_IMAGE_URL` | `relative`                         | optional — see below         |
+| `GH_IMAGE_URL` | `raw`                              | optional — see below         |
 
 **3. Re-authorise and re-deploy.** Committing to GitHub means the script now
 makes external requests, which is a new permission. In the Apps Script editor,
@@ -297,15 +293,15 @@ run `setup` once more and approve the new prompt. Then
 
 #### `GH_IMAGE_URL` — how the image is linked
 
-| Value                 | Stored in the sheet                              | Behaviour                                                                 |
-| --------------------- | ------------------------------------------------ | ------------------------------------------------------------------------- |
-| `relative` *(default)* | `assets/img/products/my-tee.webp`                | Cleanest and fastest once live. Appears on the site after GitHub Pages rebuilds — usually under a minute. Won't resolve on `localhost`, because the file only exists in the repo. |
-| `raw`                 | `https://raw.githubusercontent.com/…/my-tee.webp` | Visible instantly everywhere, including local testing. Slightly slower to load, no long-term caching. |
-| `jsdelivr`            | `https://cdn.jsdelivr.net/gh/…/my-tee.webp`       | Served from a global CDN. Fast, but new files can take a few minutes to appear. |
+| Value             | Stored in the sheet                               | Behaviour                                                                 |
+| ----------------- | ------------------------------------------------- | ------------------------------------------------------------------------- |
+| `raw` *(default)* | `https://raw.githubusercontent.com/…/my-tee.webp` | Visible **instantly**, everywhere, including local testing. Public repos only. This is the default because it never leaves you staring at a broken image. |
+| `relative`        | `assets/img/products/my-tee.webp`                 | Cleanest and fastest once live, and works for private repos. But the image only appears after GitHub Pages finishes rebuilding — usually under a minute — and never resolves on `localhost`, because the file exists only in the repo. |
+| `jsdelivr`        | `https://cdn.jsdelivr.net/gh/…/my-tee.webp`       | Global CDN, public repos only. Fast, but a brand-new file can take a few minutes to propagate. |
 
-If you're testing a lot before launch, set it to `raw`; switch to `relative`
-once the site is live on Pages. Changing it only affects *future* uploads —
-images already added keep whichever URL they were saved with.
+Switch to `relative` once you're happy everything works and want the extra
+speed. Changing it only affects *future* uploads — images already added keep
+whichever URL they were saved with.
 
 > **A note on the token.** You are not sharing it with anyone — you paste it
 > into your own Apps Script project. It is never written into `config.js`,
@@ -441,15 +437,15 @@ to that repository. `GH_REPO` must be `owner/repo` with no `https://` and no
 The token is expired, mistyped, or missing the **Contents: Read and write**
 permission. Generate a fresh one and update `GH_TOKEN`.
 
-**Image uploads to Drive even though I set GH_TOKEN**
-You added the properties but didn't re-deploy a **new version**, so the live
-web app is still running the old code. Also re-run `setup` once to approve the
-external-request permission.
+**"Image uploads are switched off"**
+`GH_TOKEN` and `GH_REPO` aren't set, or you set them but haven't deployed a
+**new version** so the live web app is still running the old code. Run
+`diagnose` in the editor — it prints whether image uploads are enabled.
 
 **Uploaded image doesn't show on the site yet**
-With `GH_IMAGE_URL=relative` the image appears once GitHub Pages finishes
-rebuilding — check the Actions tab of your repo. For instant display, set
-`GH_IMAGE_URL` to `raw`.
+Only happens with `GH_IMAGE_URL=relative`, where the image appears once GitHub
+Pages finishes rebuilding — check the Actions tab of your repo. The default
+`raw` shows it immediately.
 
 **Admin login rejects the right password**
 The login screen diagnoses this for you — it asks the backend a `health`

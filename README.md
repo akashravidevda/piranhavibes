@@ -88,9 +88,9 @@ Google Sheet  ──catalog──▶  browser cache (5 min)  ──▶  storefro
 ### Product images
 
 Drop a photo into the admin product editor and it is resized to 1200 px,
-converted to WebP in the browser, then uploaded through Apps Script — either
-**committed straight into your GitHub repo** (`assets/img/products/`) or saved
-to a public Google Drive folder if you'd rather configure nothing.
+converted to WebP in the browser, then uploaded through Apps Script and
+**committed straight into your GitHub repo** (`assets/img/products/`) — a real
+commit, exactly like the seeded product photos.
 
 No credential is ever exposed: the GitHub token lives in Apps Script Script
 Properties, so it never appears in `config.js`, in the published site, or in

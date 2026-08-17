@@ -12,7 +12,7 @@
   let KEY = read(LS.adminKey, "") || sessionStorage.getItem("pv_admin_key") || "";
   let DATA = { orders: [], products: [], coupons: [], settings: {}, contacts: [] };
   let live = false;
-  let STORAGE = null; // { backend: 'github' | 'drive', repo, branch, dir }
+  let STORAGE = null; // { backend: 'github' | 'none', repo, branch, dir }
 
   /* ---------------------------------------------------------
      Image pipeline
@@ -1005,10 +1005,10 @@ ${o.notes ? `<div class="card" style="margin-top:14px;padding:14px;background:va
     <div class="up-copy">
       <b id="upTitle">Drop an image here, or click to choose</b>
       <small id="upHint">Resized to 1200px and converted to WebP automatically${
-        STORAGE
-          ? STORAGE.backend === "github"
-            ? ` · commits to <b>${esc(STORAGE.repo)}</b> (${esc(STORAGE.dir)})`
-            : " · saved to your Google Drive"
+        STORAGE && STORAGE.backend === "github"
+          ? ` · commits to <b>${esc(STORAGE.repo)}</b> (${esc(STORAGE.dir)})`
+          : STORAGE
+          ? " · <b style='color:var(--red)'>uploads disabled</b> — add GH_TOKEN and GH_REPO in Script Properties"
           : ""
       }</small>
     </div>
@@ -1170,17 +1170,9 @@ ${o.notes ? `<div class="card" style="margin-top:14px;padding:14px;background:va
       }
 
       $("#e-image").value = res.url;
-      title.innerHTML =
-        res.backend === "github"
-          ? `✓ Committed to GitHub as <code>${esc(res.path)}</code>`
-          : `✓ Saved to Google Drive`;
+      title.innerHTML = `✓ Committed to GitHub as <code>${esc(res.path)}</code>`;
       hint.textContent = res.note || "";
-      toast(
-        res.backend === "github"
-          ? "Image pushed to GitHub"
-          : "Image uploaded to Drive",
-        "ok"
-      );
+      toast("Image pushed to GitHub", "ok");
     }
   }
 
@@ -1329,8 +1321,13 @@ ${o.notes ? `<div class="card" style="margin-top:14px;padding:14px;background:va
       ? `<p class="tiny" style="margin-bottom:8px">Backend: <b style="color:var(--green)">GitHub</b> — images uploaded from the product editor are committed straight into your repository.</p>
          <p class="tiny muted">Repo <code>${esc(STORAGE.repo)}</code> · branch <code>${esc(STORAGE.branch)}</code> · folder <code>${esc(STORAGE.dir)}</code> · URL style <code>${esc(STORAGE.urlMode)}</code></p>
          <p class="tiny muted" style="margin-top:10px">Your GitHub token is stored in Apps Script Script Properties and never reaches this page or the published site.</p>`
-      : `<p class="tiny" style="margin-bottom:8px">Backend: <b style="color:var(--gold)">Google Drive</b> — uploads are saved to a public folder in your Drive and served from Google's CDN. Nothing extra to configure.</p>
-         <p class="tiny muted">Want images committed into your GitHub repo instead? Add <code>GH_TOKEN</code> and <code>GH_REPO</code> in Apps Script ▸ Project Settings ▸ Script Properties. See the "Product image uploads" section of <code>SETUP.md</code>.</p>`
+      : `<div style="padding:14px;border-radius:12px;background:#fffbf0;border:1px solid var(--gold)">
+          <b class="tiny" style="display:block;margin-bottom:6px">Image uploads are switched off</b>
+          <p class="tiny muted" style="margin-bottom:8px">Everything else works — this only affects uploading a photo from the product editor. You can still paste an image path or URL by hand.</p>
+          <p class="tiny muted" style="margin-bottom:6px">To turn it on, add these in Apps Script ▸ Project Settings ▸ Script Properties:</p>
+          <code style="display:block;padding:10px;border-radius:8px;background:var(--ink);color:#e9e7f5;font-size:.74rem;line-height:1.7">GH_TOKEN = &lt;fine-grained PAT, Contents: Read &amp; write&gt;<br>GH_REPO&nbsp; = mraadarshdubey/piranhavibes</code>
+          <p class="tiny muted" style="margin-top:8px">Full walkthrough: "Product image uploads" in <code>SETUP.md</code>.</p>
+        </div>`
   }
 </div>
 
