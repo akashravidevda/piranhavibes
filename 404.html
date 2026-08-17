@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Page not found — Piranha Vibes</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="/assets/img/brand/logo.png">
+<!-- Root-absolute paths only: this page is served for ANY unmatched path,
+     including nested ones like /foo/bar, where relative URLs would break. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/css/style.css">
+<style>
+  .nf {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: clamp(28px, 6vw, 72px) var(--gut);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .nf-num {
+    font-family: var(--display);
+    font-size: clamp(6rem, 22vw, 15rem);
+    line-height: 0.85;
+    letter-spacing: -0.05em;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+  .nf-num em {
+    font-style: italic;
+    color: var(--red);
+  }
+  .nf-links {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 30px;
+  }
+  .nf-cats {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 34px;
+    padding-top: 26px;
+    border-top: 1px solid var(--line);
+  }
+  .nf-cats a {
+    font-size: 0.84rem;
+    font-weight: 600;
+    padding: 9px 17px;
+    border: 1px solid var(--line);
+    border-radius: 100px;
+    transition: 0.3s var(--e-out);
+    background: var(--white);
+  }
+  .nf-cats a:hover {
+    background: var(--ink);
+    color: #fff;
+    border-color: var(--ink);
+    transform: translateY(-2px);
+  }
+  .nf-path {
+    font-family: var(--mono);
+    font-size: 0.76rem;
+    color: var(--tx-3);
+    background: var(--paper-2);
+    border-radius: 8px;
+    padding: 7px 13px;
+    display: inline-block;
+    margin-top: 22px;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+</style>
+</head>
+<body>
+
+<section class="nf">
+  <span class="hero-blob a"></span>
+  <span class="hero-blob b"></span>
+
+  <div style="max-width:640px;position:relative">
+    <a href="/" style="display:inline-block;margin-bottom:26px">
+      <img src="/assets/img/brand/logo.png" alt="Piranha Vibes" width="150"
+           style="height:60px;width:auto;mix-blend-mode:multiply">
+    </a>
+
+    <div class="nf-num">4<em>0</em>4</div>
+
+    <h1 class="d3" style="margin-bottom:12px">This page slipped the net</h1>
+    <p class="lead" style="margin-inline:auto">
+      The link may be old, or the design might have been retired. Everything
+      else is right where you left it.
+    </p>
+
+    <div class="nf-path" id="nfPath"></div>
+
+    <div class="nf-links">
+      <a class="btn btn-lg" href="/">Back to home</a>
+      <a class="btn btn-lg btn-ghost" href="/shop.html">Shop all products</a>
+    </div>
+
+    <div class="nf-cats">
+      <a href="/shop.html?cat=kids">Kids Wear</a>
+      <a href="/shop.html?cat=women">Women</a>
+      <a href="/shop.html?cat=men">Men</a>
+      <a href="/shop.html?cat=tote">Tote Bags</a>
+      <a href="/shop.html?cat=yoga">Yoga</a>
+      <a href="/shop.html?cat=infant">Infant Wear</a>
+      <a href="/track.html">Track an order</a>
+    </div>
+
+    <p class="tiny muted" style="margin-top:26px">
+      Still stuck? WhatsApp us on
+      <a href="https://wa.me/918087691321" target="_blank" rel="noopener"
+         style="text-decoration:underline;font-weight:600">+91 8087691321</a>
+      or email
+      <a href="mailto:piranhavibes@gmail.com"
+         style="text-decoration:underline;font-weight:600">piranhavibes@gmail.com</a>
+    </p>
+  </div>
+</section>
+
+<script>
+  /* Show what was actually requested — helps when someone reports a bad link.
+     Also rescue the common case of a missing .html extension. */
+  (function () {
+    var p = location.pathname;
+    document.getElementById("nfPath").textContent = p + location.search;
+
+    var PAGES = ["index", "shop", "product", "cart", "checkout",
+                 "order-success", "track", "admin"];
+    var last = p.replace(/\/+$/, "").split("/").pop().toLowerCase();
+    if (last && PAGES.indexOf(last) > -1) {
+      location.replace("/" + last + ".html" + location.search + location.hash);
+    }
+  })();
+</script>
+
+</body>
+</html>
