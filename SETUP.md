@@ -273,7 +273,36 @@ the one repo, and only its files):
    *(leave every other permission as "No access")*
 6. **Generate token** and copy it — GitHub shows it only once.
 
-**2. Add it to Apps Script** ▸ Project Settings ▸ Script Properties:
+**2. Install it — the quick way.** In the Apps Script editor find
+`INSTALL_GITHUB_UPLOADS` and paste the token on the `TOKEN` line:
+
+```js
+function INSTALL_GITHUB_UPLOADS() {
+  var TOKEN  = '';                              // <-- paste your token here
+  var REPO   = 'mraadarshdubey/piranhavibes';   // owner/repo
+  var BRANCH = 'main';
+```
+
+Save, pick **`INSTALL_GITHUB_UPLOADS`** from the function dropdown, press
+**Run**. It doesn't just save the settings — it checks the repo is reachable,
+makes a real test commit to prove write access, deletes that commit again, and
+only then stores anything. The log tells you exactly what happened:
+
+```
+Repository   : mraadarshdubey/piranhavibes (public)
+Write access : OK (test commit made)
+Cleanup      : OK (test commit removed)
+
+SUCCESS — image uploads are live.
+```
+
+If it fails you get the reason, not a generic error — wrong token, missing
+Contents permission, or a repo the token can't see. Then blank the `TOKEN` line
+and save.
+
+Run **`CHECK_GITHUB_UPLOADS`** any time to confirm it's still working.
+
+**2b. Or add the properties by hand** ▸ Project Settings ▸ Script Properties:
 
 | Property       | Value                              | Notes                        |
 | -------------- | ---------------------------------- | ---------------------------- |
@@ -283,10 +312,11 @@ the one repo, and only its files):
 | `GH_IMAGE_DIR` | `assets/img/products`              | optional                     |
 | `GH_IMAGE_URL` | `raw`                              | optional — see below         |
 
-**3. Re-authorise and re-deploy.** Committing to GitHub means the script now
-makes external requests, which is a new permission. In the Apps Script editor,
-run `setup` once more and approve the new prompt. Then
-**Deploy ▸ Manage deployments ▸ pencil ▸ New version ▸ Deploy**.
+**3. Re-deploy.** Script Properties take effect immediately, but if you also
+pasted a newer `Code.gs`, publish it:
+**Deploy ▸ Manage deployments ▸ pencil ▸ Version: New version ▸ Deploy**.
+The first run of `INSTALL_GITHUB_UPLOADS` will ask permission to make external
+requests — approve it.
 
 **4. Check it.** Admin ▸ Settings ▸ *Product image storage* should now read
 **Backend: GitHub** with your repo name.

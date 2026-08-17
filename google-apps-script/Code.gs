@@ -169,6 +169,167 @@ function INSTALL_ADMIN_KEY() {
   return msg;
 }
 
+/*  ============================================================
+    ONE-TIME GITHUB IMAGE-UPLOAD INSTALLER
+    ------------------------------------------------------------
+    Turns on "upload a photo in the admin panel and it lands in
+    the repo". It does not just save the settings — it proves
+    them, by making a real test commit and deleting it again,
+    so you get a definite WORKS or a precise reason why not.
+
+      1. Create a fine-grained token (one minute):
+           https://github.com/settings/personal-access-tokens/new
+           Repository access . Only select repositories . your repo
+           Permissions . Repository permissions . Contents
+                        . Read and write
+           Generate token, then copy it (shown once).
+      2. Paste it between the quotes on the TOKEN line below.
+      3. Function dropdown -> INSTALL_GITHUB_UPLOADS -> Run.
+      4. Read the Execution log.
+      5. Blank the TOKEN line again and save.
+
+    No redeploy needed.
+    ============================================================ */
+function INSTALL_GITHUB_UPLOADS() {
+  var TOKEN  = '';                              // <-- paste your token here
+  var REPO   = 'mraadarshdubey/piranhavibes';   // owner/repo
+  var BRANCH = 'main';
+  var URLMODE = 'raw';                          // 'raw' | 'relative' | 'jsdelivr'
+
+  if (!TOKEN) {
+    throw new Error(
+      'TOKEN is empty. Paste your fine-grained GitHub token between the quotes ' +
+      'on the TOKEN line inside INSTALL_GITHUB_UPLOADS, save, then Run again.'
+    );
+  }
+  if (!/^[\w-]+\/[\w.-]+$/.test(REPO)) {
+    throw new Error('REPO must look like owner/repo — got "' + REPO + '".');
+  }
+
+  var headers = {
+    Authorization: 'Bearer ' + TOKEN,
+    Accept: 'application/vnd.github+json',
+    'X-GitHub-Api-Version': '2022-11-28'
+  };
+  var log = ['GITHUB IMAGE UPLOADS — INSTALL', '-------------------------------'];
+
+  // 1. can the token see the repo at all?
+  var repoRes = UrlFetchApp.fetch('https://api.github.com/repos/' + REPO, {
+    headers: headers, muteHttpExceptions: true
+  });
+  if (repoRes.getResponseCode() !== 200) {
+    throw new Error(explainGhError(repoRes, REPO, 'reading the repository'));
+  }
+  var info = JSON.parse(repoRes.getContentText());
+  log.push('Repository   : ' + info.full_name + (info['private'] ? ' (private)' : ' (public)'));
+  log.push('Default brnch: ' + info.default_branch);
+  if (info.default_branch !== BRANCH) {
+    log.push('NOTE         : you set BRANCH="' + BRANCH + '" but the default is "' +
+             info.default_branch + '". Make sure that is intentional.');
+  }
+
+  // 2. can it actually write? Commit a probe file, then delete it.
+  var probePath = '.github/pv-upload-check.txt';
+  var api = 'https://api.github.com/repos/' + REPO + '/contents/' +
+            probePath.split('/').map(encodeURIComponent).join('/');
+  var put = UrlFetchApp.fetch(api, {
+    method: 'put', contentType: 'application/json', headers: headers,
+    payload: JSON.stringify({
+      message: 'chore: verify image upload access',
+      content: Utilities.base64Encode('Piranha Vibes upload check. Safe to delete.'),
+      branch: BRANCH
+    }),
+    muteHttpExceptions: true
+  });
+  if (put.getResponseCode() !== 200 && put.getResponseCode() !== 201) {
+    throw new Error(explainGhError(put, REPO, 'writing a file'));
+  }
+  log.push('Write access : OK (test commit made)');
+
+  var sha = JSON.parse(put.getContentText()).content.sha;
+  var del = UrlFetchApp.fetch(api, {
+    method: 'delete', contentType: 'application/json', headers: headers,
+    payload: JSON.stringify({
+      message: 'chore: remove upload access check', sha: sha, branch: BRANCH
+    }),
+    muteHttpExceptions: true
+  });
+  log.push('Cleanup      : ' + (del.getResponseCode() === 200
+    ? 'OK (test commit removed)'
+    : 'left ' + probePath + ' behind — delete it manually'));
+
+  // 3. only now save the settings
+  PropertiesService.getScriptProperties().setProperties({
+    GH_TOKEN: TOKEN,
+    GH_REPO: REPO,
+    GH_BRANCH: BRANCH,
+    GH_IMAGE_URL: URLMODE
+  }, false);
+
+  log.push('');
+  log.push('SUCCESS — image uploads are live.');
+  log.push('Images will be committed to ' + REPO + ' : ' + ghConfig().dir + '/');
+  log.push('URL style: ' + URLMODE +
+           (URLMODE === 'raw' ? ' (appears instantly)' : ''));
+  log.push('');
+  log.push('NEXT: clear the TOKEN line above (back to two empty quotes) and save,');
+  log.push('so the token is not left sitting in your script source.');
+
+  var msg = log.join('\n');
+  Logger.log(msg);
+  return msg;
+}
+
+function explainGhError(res, repo, doing) {
+  var code = res.getResponseCode();
+  var detail = '';
+  try { detail = JSON.parse(res.getContentText()).message || ''; } catch (e) {}
+  var hint;
+  if (code === 401) {
+    hint = 'The token was rejected. It may be mistyped, expired, or revoked. Generate a new one.';
+  } else if (code === 403) {
+    hint = 'The token is valid but not allowed to do this. On the token page, set ' +
+           'Repository permissions > Contents to "Read and write".';
+  } else if (code === 404) {
+    hint = 'GitHub cannot find "' + repo + '" for this token. Check the owner/repo spelling, ' +
+           'and that the token lists this repository under "Only select repositories".';
+  } else {
+    hint = 'Unexpected response from GitHub.';
+  }
+  return 'FAILED while ' + doing + ' (HTTP ' + code + ')' +
+         (detail ? ' — ' + detail : '') + '\n' + hint;
+}
+
+/* Reports upload config and live connectivity, without writing anything. */
+function CHECK_GITHUB_UPLOADS() {
+  var g = ghConfig();
+  if (!g.token || !g.repo) {
+    var m = 'Image uploads are OFF — GH_TOKEN and/or GH_REPO are not set.\n' +
+            'Run INSTALL_GITHUB_UPLOADS to turn them on.';
+    Logger.log(m);
+    return m;
+  }
+  var res = UrlFetchApp.fetch('https://api.github.com/repos/' + g.repo, {
+    headers: {
+      Authorization: 'Bearer ' + g.token,
+      Accept: 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28'
+    },
+    muteHttpExceptions: true
+  });
+  var msg = res.getResponseCode() === 200
+    ? 'Image uploads are ON.\n' +
+      '  Repo   : ' + g.repo + '\n' +
+      '  Branch : ' + g.branch + '\n' +
+      '  Folder : ' + g.dir + '\n' +
+      '  URLs   : ' + g.urlMode + '\n' +
+      '  Token  : valid (' + String(g.token).length + ' characters)'
+    : 'Image uploads are configured but the token is not working right now.\n' +
+      explainGhError(res, g.repo, 'reading the repository');
+  Logger.log(msg);
+  return msg;
+}
+
 /* Confirms the password without ever revealing it. */
 function CHECK_ADMIN_KEY() {
   var k = PropertiesService.getScriptProperties().getProperty('ADMIN_KEY');
