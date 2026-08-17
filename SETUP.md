@@ -231,13 +231,13 @@ the one repo, and only its files):
 
 **2. Add it to Apps Script** ▸ Project Settings ▸ Script Properties:
 
-| Property       | Value                          | Notes                              |
-| -------------- | ------------------------------ | ---------------------------------- |
-| `GH_TOKEN`     | the token you just copied      | required                           |
-| `GH_REPO`      | `your-username/your-repo`      | required                           |
-| `GH_BRANCH`    | `main`                         | optional, defaults to `main`       |
-| `GH_IMAGE_DIR` | `assets/img/products`          | optional                           |
-| `GH_IMAGE_URL` | `relative`                     | optional — see below               |
+| Property       | Value                              | Notes                        |
+| -------------- | ---------------------------------- | ---------------------------- |
+| `GH_TOKEN`     | the token you just copied          | required                     |
+| `GH_REPO`      | `mraadarshdubey/piranhavibes`      | required                     |
+| `GH_BRANCH`    | `main`                             | optional, defaults to `main` |
+| `GH_IMAGE_DIR` | `assets/img/products`              | optional                     |
+| `GH_IMAGE_URL` | `relative`                         | optional — see below         |
 
 **3. Re-authorise and re-deploy.** Committing to GitHub means the script now
 makes external requests, which is a new permission. In the Apps Script editor,
@@ -287,15 +287,40 @@ hide it. Valid `category` values: `kids`, `women`, `men`, `tote`, `yoga`,
 
 ## Part 6 — Going live on a real domain
 
-The site is fully static, so any static host works — no server needed.
+The site is fully static, so any static host works — no server needed. The
+whole project lives at the **root** of `mraadarshdubey/piranhavibes`, so
+`index.html` is the entry point with no sub-folder to configure.
 
-- **Netlify / Vercel / Cloudflare Pages** — drag the `piranha-vibes` folder onto
-  their dashboard, or connect a Git repo. Free tier is plenty.
-- **GitHub Pages** — push the folder, then Settings ▸ Pages ▸ deploy from branch.
-- **Your existing hosting** — upload the folder over FTP.
+### GitHub Pages
+
+Repo ▸ **Settings ▸ Pages ▸ Source: Deploy from a branch ▸ `main` / `/ (root)`**.
+
+One thing to decide first — **the repo is currently private**:
+
+| Repo visibility | GitHub Pages           | `raw` / `jsdelivr` image URLs | Notes |
+| --------------- | ---------------------- | ----------------------------- | ----- |
+| **Private**     | Needs GitHub **Pro** (paid) | Won't load — they require auth | Keep `GH_IMAGE_URL=relative` |
+| **Public**      | Free                   | Work fine                     | `admin.html` is reachable by anyone — the `ADMIN_KEY` is your only defence |
+
+Making it public is the normal choice for a shop front-end, and it is safe
+*provided* `ADMIN_KEY` is strong: the page is just a login form, and every
+piece of real data is fetched only after the backend verifies the key.
+
+### Other hosts
+
+- **Netlify / Vercel / Cloudflare Pages** — connect the GitHub repo, leave the
+  build command empty and the publish directory as `/`. Free tier is plenty,
+  and Pages works from a private repo at no cost.
+- **Your existing hosting** — upload the folder contents over FTP.
 
 Then point `www.piranhavibes.com` at the host and add the SSL certificate
-(automatic on all three services above).
+(automatic on all of the above).
+
+### Pushing future changes
+
+```bash
+git add -A && git commit -m "your message" && git push
+```
 
 ### Before you launch
 
