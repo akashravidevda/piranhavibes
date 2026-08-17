@@ -30,6 +30,10 @@
       6. Copy the /exec URL into assets/js/config.js → API_URL
     ============================================================= */
 
+/* Bumped whenever Code.gs changes in a way the site can detect, so a
+   stale deployment is easy to spot: GET ?action=health */
+var API_VERSION = 2;
+
 var SHEETS = {
   products: 'Products',
   orders: 'Orders',
@@ -132,12 +136,17 @@ function doGet(e) {
   var p = e && e.parameter ? e.parameter : {};
   var out;
   try {
-    if (p.action === 'catalog') out = catalog();
-    else if (p.action === 'track') out = trackOrder(p.id, p.phone);
-    else if (p.action === 'adminPing') out = requireKey(p.key) ? { ok: true } : { ok: false, error: 'Invalid key' };
-    else if (p.action === 'adminData') out = requireKey(p.key) ? adminData() : { ok: false, error: 'Invalid key' };
-    else if (p.data) out = route(JSON.parse(decodeURIComponent(p.data)));
-    else out = { ok: true, service: 'Piranha Vibes API', version: 1 };
+    if (p.data) {
+      // JSONP fallback for writes: the whole body arrives encoded.
+      out = route(JSON.parse(decodeURIComponent(p.data)));
+    } else if (p.action) {
+      // Query parameters double as the payload, so every action in route()
+      // is reachable over JSONP. Keeping one dispatch table means a new
+      // action can never be reachable by POST but silently missing here.
+      out = route({ action: p.action, payload: p });
+    } else {
+      out = { ok: true, service: 'Piranha Vibes API', version: API_VERSION };
+    }
   } catch (err) {
     out = { ok: false, error: String(err && err.message ? err.message : err) };
   }
@@ -159,6 +168,7 @@ function route(body) {
   var d = body.payload || {};
 
   // public
+  if (a === 'health') return health();
   if (a === 'catalog') return catalog();
   if (a === 'createOrder') return createOrder(d);
   if (a === 'track') return trackOrder(d.id, d.phone);
@@ -198,6 +208,72 @@ function reply(obj, callback) {
 function requireKey(key) {
   var real = PropertiesService.getScriptProperties().getProperty('ADMIN_KEY');
   return !!real && String(key) === String(real);
+}
+
+/*  Public, and deliberately so — it reveals no secret, only whether the
+    deployment is finished being set up. When ADMIN_KEY is missing every
+    admin action is refused, so "not configured" means locked, not open.
+    The login screen uses this to tell "wrong password" apart from
+    "nobody has set a password yet", which are very different problems. */
+function health() {
+  var props = PropertiesService.getScriptProperties();
+  var out = {
+    ok: true,
+    version: API_VERSION,
+    adminKeySet: !!props.getProperty('ADMIN_KEY'),
+    imageBackend: (props.getProperty('GH_TOKEN') && props.getProperty('GH_REPO'))
+      ? 'github' : 'drive',
+    sheetOk: false,
+    productCount: 0
+  };
+  try {
+    var sh = ss().getSheetByName(SHEETS.products);
+    out.sheetOk = !!sh;
+    out.productCount = sh ? Math.max(0, sh.getLastRow() - 1) : 0;
+  } catch (e) {
+    out.sheetError = String(e.message);
+  }
+  return out;
+}
+
+/*  Run this from the editor when something isn't working — it prints a
+    checklist to the Execution log without ever printing the key itself. */
+function diagnose() {
+  var props = PropertiesService.getScriptProperties();
+  var key = props.getProperty('ADMIN_KEY');
+  var lines = [
+    'PIRANHA VIBES — BACKEND DIAGNOSTIC',
+    '----------------------------------',
+    'Script code version : ' + API_VERSION,
+    'ADMIN_KEY           : ' + (key
+      ? 'SET (' + String(key).length + ' characters)'
+      : '*** NOT SET — the admin panel cannot log in ***'),
+    'NOTIFY_EMAIL        : ' + (props.getProperty('NOTIFY_EMAIL') || 'not set (no order emails)'),
+    'Image uploads go to : ' + ((props.getProperty('GH_TOKEN') && props.getProperty('GH_REPO'))
+      ? 'GitHub — ' + props.getProperty('GH_REPO')
+      : 'Google Drive (GH_TOKEN / GH_REPO not set)')
+  ];
+  try {
+    var book = ss();
+    lines.push('Spreadsheet         : ' + book.getName());
+    lines.push('Spreadsheet URL     : ' + book.getUrl());
+    Object.keys(HEADERS).forEach(function (n) {
+      var sh = book.getSheetByName(n);
+      lines.push('  ' + (n + '                ').slice(0, 14) +
+                 (sh ? Math.max(0, sh.getLastRow() - 1) + ' rows' : 'MISSING — run setup()'));
+    });
+  } catch (e) {
+    lines.push('Spreadsheet         : ERROR — ' + e.message);
+  }
+  if (!key) {
+    lines.push('');
+    lines.push('FIX: Project Settings > Script Properties > Add script property');
+    lines.push('     Name: ADMIN_KEY     Value: <the password you want>');
+    lines.push('     Then press "Save script properties". No redeploy needed.');
+  }
+  var msg = lines.join('\n');
+  Logger.log(msg);
+  return msg;
 }
 
 /* ==========================================================

@@ -90,6 +90,83 @@
     return r;
   }
 
+  function noticeBox(title, bodyHtml) {
+    $("#loginHint").innerHTML = `
+<div style="text-align:left;padding:16px;border-radius:12px;background:#fffbf0;border:1px solid var(--gold);color:var(--tx)">
+  <b style="display:block;margin-bottom:8px;font-size:.9rem">${title}</b>
+  ${bodyHtml}
+</div>`;
+  }
+
+  /* The deployment is running an older Code.gs than this site expects. */
+  function showStaleDeployment() {
+    noticeBox(
+      "Your Apps Script deployment is out of date",
+      `<p style="font-size:.8rem;line-height:1.65;margin-bottom:10px">
+        The backend is reachable, but it's running an older version of
+        <code>Code.gs</code>. Saving the file isn't enough — Apps Script keeps
+        serving the last <i>deployed</i> version until you publish a new one.
+      </p>
+      <p style="font-size:.8rem;line-height:1.7;margin-bottom:4px"><b>Fix it:</b></p>
+      <ol style="font-size:.8rem;line-height:1.75;padding-left:18px;list-style:decimal">
+        <li>Paste the latest <code>google-apps-script/Code.gs</code> over your script and save</li>
+        <li>Run <code>setup</code> once and approve any new permission</li>
+        <li><b>Deploy ▸ Manage deployments ▸ pencil icon</b></li>
+        <li>Version: <b>New version</b> ▸ <b>Deploy</b></li>
+      </ol>
+      <p style="font-size:.8rem;margin-top:10px">The URL stays the same.
+        <button id="retryHealth" style="text-decoration:underline;font-weight:600">Check again</button>
+      </p>`
+    );
+    wireRetry();
+  }
+
+  /* The backend answered, but it has no ADMIN_KEY — so no password can
+     ever work. Say that outright instead of "incorrect key". */
+  function showSetupNeeded() {
+    noticeBox(
+      "No admin password is set on the backend yet",
+      `<p style="font-size:.8rem;line-height:1.65;margin-bottom:10px">
+        The connection is fine — your Google Sheet is reachable. But
+        <code>ADMIN_KEY</code> is missing in Apps Script, so every password is
+        refused. Nothing is exposed: the panel is locked, not open.
+      </p>
+      <p style="font-size:.8rem;line-height:1.7;margin-bottom:4px"><b>Fix it in 30 seconds:</b></p>
+      <ol style="font-size:.8rem;line-height:1.75;padding-left:18px;list-style:decimal">
+        <li>Open your Apps Script project</li>
+        <li><b>Project Settings</b> (gear icon in the left rail)</li>
+        <li>Scroll to <b>Script Properties ▸ Add script property</b></li>
+        <li>Name <code>ADMIN_KEY</code>, Value = the password you want</li>
+        <li><b>Save script properties</b> — no redeploy needed</li>
+      </ol>
+      <p style="font-size:.8rem;margin-top:10px">Then come back and sign in.
+        <button id="retryHealth" style="text-decoration:underline;font-weight:600">Check again</button>
+      </p>`
+    );
+    wireRetry();
+  }
+
+  function wireRetry() {
+    const rb = $("#retryHealth");
+    if (!rb) return;
+    rb.onclick = async () => {
+      const original = rb.textContent;
+      rb.textContent = "Checking…";
+      try {
+        const h = await jsonp({ action: "health" }, 15000);
+        if (h && h.adminKeySet) {
+          $("#loginHint").innerHTML =
+            '<b style="color:var(--green)">All set — sign in above.</b>';
+          $("#key").closest(".field").classList.remove("err");
+          sessionStorage.removeItem(LOCK);
+          $("#key").focus();
+          return;
+        }
+      } catch (e) {}
+      rb.textContent = "Not ready yet — " + original.toLowerCase();
+    };
+  }
+
   function wireConnect() {
     const box = $("#connectBox");
     if (!box) return;
@@ -231,6 +308,26 @@
     }
 
     if (verdict === "bad") {
+      // "Rejected" can mean the wrong key OR that no key was ever configured
+      // on the backend. Those need completely different fixes, so find out.
+      let h = null;
+      try {
+        h = await jsonp({ action: "health" }, 15000);
+      } catch (e) {}
+
+      if (h && h.ok && h.adminKeySet === false) {
+        $("#key").closest(".field").classList.add("err");
+        $("#keyMsg").textContent = "";
+        return showSetupNeeded();
+      }
+      // An older Code.gs has no `health` action, so the request falls through
+      // to the service banner — which has no adminKeySet field at all.
+      if (h && h.ok && typeof h.adminKeySet === "undefined") {
+        $("#key").closest(".field").classList.add("err");
+        $("#keyMsg").textContent = "";
+        return showStaleDeployment();
+      }
+
       const fails = st.fails + 1;
       const locked = fails >= MAX_TRIES;
       setLock({ fails: locked ? 0 : fails, until: locked ? Date.now() + LOCK_MS : 0 });

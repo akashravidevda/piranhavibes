@@ -430,6 +430,24 @@ With `GH_IMAGE_URL=relative` the image appears once GitHub Pages finishes
 rebuilding — check the Actions tab of your repo. For instant display, set
 `GH_IMAGE_URL` to `raw`.
 
-**"Invalid or missing admin key"**
-`ADMIN_KEY` in Script Properties doesn't match what you typed. It is
-case-sensitive. Re-check for stray spaces.
+**Admin login rejects the right password**
+The login screen diagnoses this for you — it asks the backend a `health`
+question and then tells you which of these it actually is:
+
+1. **`ADMIN_KEY` was never added** — every password is refused, because
+   `requireKey` needs the property to exist. Add it in Project Settings ▸
+   Script Properties. No redeploy needed.
+2. **The deployment is running old code** — you pasted the new `Code.gs` and
+   saved, but Apps Script keeps serving the last *deployed* version.
+   **Deploy ▸ Manage deployments ▸ pencil ▸ Version: New version ▸ Deploy.**
+3. **Genuinely the wrong key** — it's case-sensitive; check for a stray space
+   at either end.
+
+To see the same answer from inside the editor, run the **`diagnose`** function
+and read the Execution log. It prints whether `ADMIN_KEY` is set (never its
+value), the code version, the spreadsheet URL and the row count of every sheet.
+
+You can also check from a browser — open your `/exec` URL with
+`?action=health` on the end. `"adminKeySet": true` means the password is
+configured; if you see `"service"` instead of `"adminKeySet"`, the deployment
+is stale.
