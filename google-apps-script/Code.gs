@@ -122,6 +122,64 @@ function setup() {
   return msg;
 }
 
+/*  ============================================================
+    ONE-TIME ADMIN PASSWORD INSTALLER
+    ------------------------------------------------------------
+    Use this instead of the Script Properties screen if that is
+    giving you trouble. It saves the password AND verifies it,
+    so you get a straight yes/no in the log.
+
+      1. Type your password between the quotes on the NEW_KEY
+         line below.
+      2. Function dropdown at the top -> INSTALL_ADMIN_KEY -> Run.
+      3. Read the Execution log.
+      4. Blank the quotes again and save, so the password is not
+         left sitting in your script.
+
+    No redeploy needed — the key is read fresh on every request.
+    ============================================================ */
+function INSTALL_ADMIN_KEY() {
+  var NEW_KEY = '';   // <-- type your password here, between the quotes
+
+  if (!NEW_KEY) {
+    throw new Error(
+      'NEW_KEY is empty. In the editor, put your password between the quotes ' +
+      'on the NEW_KEY line inside INSTALL_ADMIN_KEY, save, then Run again.'
+    );
+  }
+  if (String(NEW_KEY).length < 6) {
+    throw new Error('Use at least 6 characters for the admin password.');
+  }
+
+  var props = PropertiesService.getScriptProperties();
+  props.setProperty('ADMIN_KEY', String(NEW_KEY));
+
+  var saved = props.getProperty('ADMIN_KEY');
+  var msg;
+  if (saved === String(NEW_KEY)) {
+    msg =
+      'SUCCESS — ADMIN_KEY saved (' + saved.length + ' characters).\n' +
+      'You can sign in to admin.html right now. No redeploy needed.\n\n' +
+      'NEXT: clear the NEW_KEY line above (back to two empty quotes) and save,\n' +
+      'so your password is not left sitting in the script source.';
+  } else {
+    msg = 'FAILED — the property did not save. Try the Script Properties screen instead.';
+  }
+  Logger.log(msg);
+  return msg;
+}
+
+/* Confirms the password without ever revealing it. */
+function CHECK_ADMIN_KEY() {
+  var k = PropertiesService.getScriptProperties().getProperty('ADMIN_KEY');
+  var msg = k
+    ? 'ADMIN_KEY is set — ' + k.length + ' characters, starts with "' +
+      k.charAt(0) + '", ends with "' + k.charAt(k.length - 1) + '". Login will work.'
+    : 'ADMIN_KEY is NOT set. Run INSTALL_ADMIN_KEY, or add it in Project Settings > Script Properties.';
+  Logger.log(msg);
+  return msg;
+}
+
 /* Prints where the database lives — handy if you lose the tab. */
 function openDatabase() {
   var url = ss().getUrl();

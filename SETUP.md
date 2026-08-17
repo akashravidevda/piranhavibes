@@ -43,6 +43,26 @@ Admin console: <http://localhost:5199/admin.html>
 
 ### Set your admin key
 
+**The quick way — run a function.** In the Apps Script editor, find
+`INSTALL_ADMIN_KEY` near the top of `Code.gs`:
+
+```js
+function INSTALL_ADMIN_KEY() {
+  var NEW_KEY = '';   // <-- type your password here, between the quotes
+```
+
+Type your password between those quotes, save, then pick
+**`INSTALL_ADMIN_KEY`** from the function dropdown at the top and press
+**Run**. The Execution log tells you straight away whether it saved. Then blank
+the quotes again and save, so the password isn't left in your script source.
+
+No redeploy is needed — the key is read fresh on every request.
+
+To confirm later without revealing it, run **`CHECK_ADMIN_KEY`**. It prints the
+length and the first/last character only.
+
+**The manual way — Script Properties.**
+
 1. In Apps Script, click the **gear icon (Project Settings)** in the left rail.
 2. Scroll to **Script Properties ▸ Add script property**.
 3. Add these two:
@@ -57,7 +77,8 @@ Admin console: <http://localhost:5199/admin.html>
    `NOTIFY_EMAIL` gets an email every time an order comes in. Leave it out if
    you don't want emails.
 
-4. Click **Save script properties**.
+4. Click **Save script properties**. ← this button is easy to miss; typing the
+   values alone does nothing until you press it.
 
 ### If you created the script at script.google.com instead
 
