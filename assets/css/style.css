@@ -2225,26 +2225,56 @@ section {
 }
 
 .toast {
-  background: var(--ink);
-  color: #fff;
-  padding: 13px 20px;
+  background: rgba(12, 14, 43, 0.95);
+  color: #ffffff;
+  padding: 12px 20px 12px 14px;
   border-radius: 100px;
   font-size: 0.88rem;
   font-weight: 500;
   display: flex;
   align-items: center;
-  gap: 10px;
-  box-shadow: var(--sh-2);
+  gap: 11px;
+  box-shadow: 0 12px 36px rgba(12, 14, 43, 0.28), 0 2px 8px rgba(0, 0, 0, 0.12);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   animation: tIn 0.5s var(--e-spring), tOut 0.4s ease 3.1s forwards;
-  max-width: 340px;
+  max-width: 360px;
+}
+
+.toast .ic {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 0.78rem;
+  font-weight: 800;
+  flex-shrink: 0;
 }
 
 .toast.err {
-  background: var(--red);
+  background: rgba(16, 17, 40, 0.96);
+  border-color: rgba(230, 43, 30, 0.38);
+  box-shadow: 0 12px 36px rgba(12, 14, 43, 0.3), 0 0 24px rgba(230, 43, 30, 0.16);
+}
+
+.toast.err .ic {
+  background: rgba(230, 43, 30, 0.2);
+  color: #ff6b60;
+  border: 1px solid rgba(230, 43, 30, 0.35);
+}
+
+.toast.ok {
+  background: rgba(12, 14, 43, 0.95);
+  border-color: rgba(31, 122, 77, 0.38);
+  box-shadow: 0 12px 36px rgba(12, 14, 43, 0.3), 0 0 24px rgba(31, 122, 77, 0.16);
 }
 
 .toast.ok .ic {
-  color: #5ee9a8;
+  background: rgba(31, 122, 77, 0.22);
+  color: #4ade80;
+  border: 1px solid rgba(31, 122, 77, 0.38);
 }
 
 @keyframes tIn {
