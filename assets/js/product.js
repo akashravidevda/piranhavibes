@@ -238,7 +238,15 @@
   function tryAdd() {
     if (p.sizes.length > 1 && !size) {
       $("#sizeErr").style.display = "block";
-      $("#sizeChips").scrollIntoView({ behavior: "smooth", block: "center" });
+      const chipsEl = $("#sizeChips");
+      if (chipsEl) {
+        chipsEl.classList.remove("chips-highlight");
+        void chipsEl.offsetWidth; // force reflow for smooth animation replay
+        chipsEl.classList.add("chips-highlight");
+        setTimeout(() => chipsEl.classList.remove("chips-highlight"), 1200);
+        chipsEl.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+      toast("Please select a size first", "err");
       return false;
     }
     return Cart.add(p.slug, size, color, qty);

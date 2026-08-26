@@ -2631,6 +2631,18 @@ section {
   text-decoration: line-through;
 }
 
+@keyframes chipShake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-5px); }
+  40%, 80% { transform: translateX(5px); }
+}
+
+.chips-highlight .chip {
+  border-color: var(--red);
+  box-shadow: 0 0 0 2px rgba(214, 40, 40, 0.2);
+  animation: chipShake 0.45s ease;
+}
+
 .acc {
   border-top: 1px solid var(--line);
 }
