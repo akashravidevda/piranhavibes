@@ -115,13 +115,57 @@
             Store.settings.upiId || CFG.UPI_ID
           )}</b> using any UPI app, then enter your transaction reference below. We confirm within a few hours.</small></span>
         </label>
-        <div id="upiBox" class="${method === "UPI" ? "" : "hidden"}" style="margin-top:6px">
-          <div class="field"><label for="txn">UPI transaction / UTR reference *</label>
-            <input id="txn" name="txn" placeholder="e.g. 4291XXXXXXXX" value="">
-            <span class="msg">Enter the reference from your UPI app</span></div>
-          <p class="tiny muted">Amount to pay: <b id="upiAmt">${money(t.total)}</b> to <b>${esc(
-      Store.settings.upiId || CFG.UPI_ID
-    )}</b>. Your order is confirmed once we verify the payment.</p>
+        <div id="upiBox" class="${method === "UPI" ? "" : "hidden"}" style="margin-top:12px">
+          <div class="upi-pay-card">
+            <div class="upi-badge-row">
+              <span class="upi-pill">VERIFIED BHIM UPI</span>
+              <div class="upi-apps-icons">
+                <span class="app-tag">GPay</span>
+                <span class="app-tag">PhonePe</span>
+                <span class="app-tag">Paytm</span>
+                <span class="app-tag">BHIM</span>
+                <span class="app-tag">CRED</span>
+              </div>
+            </div>
+
+            <div class="upi-grid-split">
+              <!-- Dynamic QR Code Stage -->
+              <div class="upi-qr-stage">
+                <div class="upi-qr-frame">
+                  <img id="upiQrCodeImg" src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=8&data=${encodeURIComponent(`upi://pay?pa=${Store.settings.upiId || CFG.UPI_ID}&pn=${encodeURIComponent(CFG.BRAND)}&am=${t.total}&cu=INR&tn=${encodeURIComponent('Order ' + (window.PV_CONFIG && window.PV_CONFIG.BRAND || 'Piranha Vibes'))}`)}" alt="Scan to pay via UPI" width="160" height="160" loading="lazy">
+                </div>
+                <small class="upi-qr-label">Scan with any UPI app</small>
+              </div>
+
+              <!-- UPI ID & Details -->
+              <div class="upi-details-stage">
+                <div class="upi-amount-callout">
+                  <span class="tiny muted">Amount to pay:</span>
+                  <b class="upi-total-val" id="upiAmtDisplay">${money(t.total)}</b>
+                </div>
+
+                <div class="upi-copy-container">
+                  <span class="tiny muted" style="display:block;margin-bottom:4px">Payee UPI ID:</span>
+                  <div class="upi-copy-field">
+                    <code id="upiIdValue">${esc(Store.settings.upiId || CFG.UPI_ID)}</code>
+                    <button type="button" class="btn btn-ghost btn-sm" id="btnCopyUpi" style="padding:6px 12px;font-size:0.78rem">Copy</button>
+                  </div>
+                </div>
+
+                <!-- Direct Native UPI Intent Button (Mobile) -->
+                <a id="btnUpiIntent" href="upi://pay?pa=${encodeURIComponent(Store.settings.upiId || CFG.UPI_ID)}&pn=${encodeURIComponent(CFG.BRAND)}&am=${t.total}&cu=INR&tn=${encodeURIComponent('Order Piranha Vibes')}" class="btn btn-sm btn-block btn-upi-app" target="_blank" rel="noopener">
+                  <span>⚡ Pay via UPI App (GPay / PhonePe)</span>
+                </a>
+              </div>
+            </div>
+
+            <!-- Transaction Reference Input -->
+            <div class="field" style="margin-top:14px;margin-bottom:0">
+              <label for="txn">UPI Transaction ID / 12-digit UTR Reference <span style="color:var(--red)">*</span></label>
+              <input id="txn" name="txn" placeholder="e.g. 4291XXXXXXXX or UPI Reference Number" value="" maxlength="35" autocomplete="off" spellcheck="false">
+              <span class="msg" style="font-size:0.76rem">After completing payment in your UPI app, enter the 12-digit UTR or transaction reference number here so we can verify and confirm your order immediately.</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -143,6 +187,44 @@
   <aside class="co-side">${summary(t)}</aside>
 </div>`;
 
+    /* helper to update UPI dynamic links & QR */
+    const updateUpiDetails = (totalAmt) => {
+      const upiId = Store.settings.upiId || CFG.UPI_ID;
+      const upiUrl = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(CFG.BRAND)}&am=${totalAmt}&cu=INR&tn=${encodeURIComponent('Order ' + CFG.BRAND)}`;
+      const qrImg = $("#upiQrCodeImg");
+      if (qrImg) {
+        qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=8&data=${encodeURIComponent(upiUrl)}`;
+      }
+      const intentBtn = $("#btnUpiIntent");
+      if (intentBtn) {
+        intentBtn.href = upiUrl;
+      }
+      const amtDisplay = $("#upiAmtDisplay");
+      if (amtDisplay) {
+        amtDisplay.textContent = money(totalAmt);
+      }
+    };
+
+    /* copy UPI button */
+    const copyBtn = $("#btnCopyUpi");
+    if (copyBtn) {
+      copyBtn.onclick = (e) => {
+        e.preventDefault();
+        const upiId = Store.settings.upiId || CFG.UPI_ID;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(upiId).then(() => {
+            copyBtn.textContent = "Copied! ✓";
+            toast("UPI ID copied to clipboard!", "ok");
+            setTimeout(() => { copyBtn.textContent = "Copy"; }, 2000);
+          }).catch(() => {
+            prompt("Copy UPI ID:", upiId);
+          });
+        } else {
+          prompt("Copy UPI ID:", upiId);
+        }
+      };
+    }
+
     /* payment switching */
     $$(".radio-card").forEach((rc) => {
       rc.onclick = () => {
@@ -153,8 +235,7 @@
         const nt = totals(coupon, method);
         $("#grandTotal").textContent = money(nt.total);
         $("#btnTotal").textContent = money(nt.total);
-        const ua = $("#upiAmt");
-        if (ua) ua.textContent = money(nt.total);
+        updateUpiDetails(nt.total);
       };
     });
 
