@@ -79,9 +79,7 @@
                   (c, i) =>
                     `<button class="chip${i === 0 ? " on" : ""}" data-col="${esc(c)}"
                       style="display:flex;align-items:center;gap:8px">
-                      <i style="width:14px;height:14px;border-radius:50%;background:${colorHex(
-                        c
-                      )};border:1px solid rgba(0,0,0,.15);display:block"></i>${esc(c)}</button>`
+                      <i style="background:${colorHex(c)}"></i>${esc(c)}</button>`
                 )
                 .join("")}
             </div>

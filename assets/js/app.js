@@ -166,6 +166,15 @@
     ready: null,
   };
 
+  const SPECIFIC_BLACK_TOTES = [
+    "chafa",
+    "jastwand",
+    "nishigandh",
+    "bharatnatyam",
+    "kathak",
+    "prajakta",
+  ];
+
   function normalise(p) {
     const toArr = (v) =>
       Array.isArray(v)
@@ -175,16 +184,24 @@
           .map((x) => x.trim())
           .filter(Boolean);
     const slug = p.slug || slugify(p.name);
+    let colors = toArr(p.colors);
+    if (SPECIFIC_BLACK_TOTES.includes(slug)) {
+      colors = ["Black"];
+    }
+    let price = Number(p.price) || 0;
+    if (slug === "tulips") {
+      price = 330;
+    }
     return {
       sku: p.sku || slug.toUpperCase(),
       slug,
       name: p.name || "Untitled",
       category: p.category || "kids",
-      price: Number(p.price) || 0,
+      price,
       mrp: Number(p.mrp) || 0,
       stock: p.stock === "" || p.stock == null ? 0 : Number(p.stock),
       sizes: toArr(p.sizes),
-      colors: toArr(p.colors),
+      colors,
       desc: p.desc || "",
       badge: p.badge || "",
       featured: Number(p.featured) ? 1 : 0,

@@ -2655,6 +2655,21 @@ section {
   color: #fff;
 }
 
+.chip i {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  display: block;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.chip.on i {
+  border: 1.5px solid rgba(255, 255, 255, 0.65) !important;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25);
+}
+
 .chip.dis {
   opacity: 0.35;
   pointer-events: none;
