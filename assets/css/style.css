@@ -2590,6 +2590,10 @@ section {
   margin-top: 12px;
 }
 
+.pd-thumbs:empty {
+  display: none !important;
+}
+
 .pd-thumbs button {
   width: 74px;
   aspect-ratio: 1/1.15;

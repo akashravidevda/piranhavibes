@@ -44,10 +44,17 @@
         )})</span><span>− ${money(t.discount)}</span></div>`
       : ""
   }
-  <div class="sum-row"><span>Shipping</span><span>${t.ship ? money(t.ship) : "Free"}</span></div>
+  <div class="sum-row"><span>Delivery Fee</span><span>${money(t.baseShip)}</span></div>
+  ${
+    t.shipDiscount > 0
+      ? `<div class="sum-row" style="color:var(--green);font-weight:600"><span>Online Payment Discount</span><span>− ${money(
+          t.shipDiscount
+        )}</span></div>`
+      : ""
+  }
   ${t.codFee ? `<div class="sum-row"><span>COD handling</span><span>${money(t.codFee)}</span></div>` : ""}
   ${t.tax ? `<div class="sum-row"><span>Tax</span><span>${money(t.tax)}</span></div>` : ""}
-  <div class="sum-row total"><span>To pay</span><span id="grandTotal">${money(t.total)}</span></div>
+  <div class="sum-row total" style="margin-top:6px;padding-top:10px;border-top:1px dashed var(--line)"><span>To pay</span><span id="grandTotal">${money(t.total)}</span></div>
   <div class="trust-row" style="margin-top:16px">
     <div>${ICON.truck}48h dispatch</div>
     <div>${ICON.refresh}7-day returns</div>
@@ -103,17 +110,19 @@
           Store.settings.codEnabled
             ? `<label class="radio-card${method === "COD" ? " on" : ""}" data-m="COD">
                 <input type="radio" name="pay" value="COD" ${method === "COD" ? "checked" : ""}>
-                <span><b>Cash on Delivery</b><small>Pay the courier in cash when your parcel arrives.${
-                  Number(Store.settings.codFee) ? ` A handling fee of ${money(Store.settings.codFee)} applies.` : ""
+                <span><b>Cash on Delivery</b><small>Pay courier in cash on delivery. Standard ${money(
+                  Store.settings.shippingFee || 60
+                )} delivery fee applies.${
+                  Number(Store.settings.codFee) ? ` Plus ${money(Store.settings.codFee)} COD handling fee.` : ""
                 }</small></span>
               </label>`
             : ""
         }
         <label class="radio-card${method === "UPI" ? " on" : ""}" data-m="UPI">
           <input type="radio" name="pay" value="UPI" ${method === "UPI" ? "checked" : ""}>
-          <span><b>UPI / Bank transfer</b><small>Pay to <b>${esc(
+          <span><b>UPI / Online Payment</b> <span class="badge" style="background:#e6f4ea;color:#137333;font-weight:700;font-size:0.75rem;padding:2px 8px;border-radius:4px;margin-left:6px">FREE Delivery (Save ₹60)</span><small style="display:block;margin-top:2px">Pay to <b>${esc(
             Store.settings.upiId || CFG.UPI_ID
-          )}</b> using any UPI app, then enter your transaction reference below. We confirm within a few hours.</small></span>
+          )}</b> using any UPI app (GPay / PhonePe / Paytm). Free delivery write-off applied!</small></span>
         </label>
         <div id="upiBox" class="${method === "UPI" ? "" : "hidden"}" style="margin-top:12px">
           <div class="upi-pay-card">
@@ -157,13 +166,6 @@
                   <span>⚡ Pay via UPI App (GPay / PhonePe)</span>
                 </a>
               </div>
-            </div>
-
-            <!-- Transaction Reference Input -->
-            <div class="field" style="margin-top:14px;margin-bottom:0">
-              <label for="txn">UPI Transaction ID / 12-digit UTR Reference <span style="color:var(--red)">*</span></label>
-              <input id="txn" name="txn" placeholder="e.g. 4291XXXXXXXX or UPI Reference Number" value="" maxlength="35" autocomplete="off" spellcheck="false">
-              <span class="msg" style="font-size:0.76rem">After completing payment in your UPI app, enter the 12-digit UTR or transaction reference number here so we can verify and confirm your order immediately.</span>
             </div>
           </div>
         </div>
@@ -233,7 +235,8 @@
         rc.querySelector("input").checked = true;
         $("#upiBox").classList.toggle("hidden", method !== "UPI");
         const nt = totals(coupon, method);
-        $("#grandTotal").textContent = money(nt.total);
+        const side = $(".co-side");
+        if (side) side.innerHTML = summary(nt);
         $("#btnTotal").textContent = money(nt.total);
         updateUpiDetails(nt.total);
       };
@@ -263,7 +266,6 @@
     set("city", f.city.value.trim().length < 2);
     set("pincode", !/^\d{6}$/.test(f.pincode.value.trim()));
     set("state", !f.state.value);
-    if (method === "UPI") set("txn", f.txn.value.trim().length < 6);
     const agreed = $("#agree").checked;
     $("#agreeErr").style.display = agreed ? "none" : "block";
     if (!agreed) ok = false;
@@ -296,7 +298,7 @@
       landmark: f.landmark.value.trim(),
       notes: f.notes.value.trim(),
       paymentMethod: method,
-      txnRef: method === "UPI" ? f.txn.value.trim() : "",
+      txnRef: (f.txn && f.txn.value) ? f.txn.value.trim() : "",
       coupon: t.discount ? coupon.toUpperCase() : "",
       subtotal: t.sub,
       discount: t.discount,

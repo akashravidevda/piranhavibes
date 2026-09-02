@@ -65,7 +65,7 @@
       ${p.mrp > p.price ? `<span class="pc-mrp" style="font-size:1.05rem">${money(p.mrp)}</span>` : ""}
       ${off ? `<span class="pc-off" style="font-size:.95rem">${off}% off</span>` : ""}
     </div>
-    <p class="tiny muted">Inclusive of all taxes · Free shipping above ${money(Store.settings.freeShippingAbove)}</p>
+    <p class="tiny muted">Inclusive of all taxes · ₹60 Free Delivery Discount with Online Payment</p>
 
     <p class="lead" style="font-size:1rem;margin-top:20px">${esc(p.desc)}</p>
 
@@ -161,8 +161,10 @@
 </div>`;
 
   /* ── gallery (single source image + zoom) ────────── */
-  const thumbs = [p.image, "assets/img/brand/life-4.webp", "assets/img/brand/life-2.webp"];
-  $("#pdThumbs").innerHTML = thumbs
+  const thumbs = p.category === "tote" ? [p.image] : [p.image, "assets/img/brand/life-4.webp", "assets/img/brand/life-2.webp"];
+  const thBox = $("#pdThumbs");
+  thBox.style.display = "flex";
+  thBox.innerHTML = thumbs
     .map(
       (t, i) =>
         `<button class="${i === 0 ? "on" : ""}" data-th="${t}"><img src="${t}" alt="View ${

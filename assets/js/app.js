@@ -361,19 +361,17 @@
       discount = Math.min(discount, sub);
     }
     const after = sub - discount;
-    // Free-shipping qualification is judged on the pre-discount subtotal so a
-    // coupon can never push a qualifying order back into paid shipping.
-    const ship =
-      sub === 0
-        ? 0
-        : sub >= Number(s.freeShippingAbove)
-          ? 0
-          : Number(s.shippingFee) || 0;
+    const baseShip = sub === 0 ? 0 : Number(s.shippingFee) || 60;
+    const isOnline = method !== "COD";
+    const shipDiscount = (sub > 0 && isOnline) ? baseShip : 0;
+    const ship = (sub > 0 && !isOnline) ? baseShip : 0;
     const codFee = method === "COD" ? Number(s.codFee) || 0 : 0;
     const tax = Math.round((after * (Number(s.taxPercent) || 0)) / 100);
     return {
       sub,
       discount,
+      baseShip,
+      shipDiscount,
       ship,
       codFee,
       tax,
@@ -448,9 +446,7 @@
     ];
     const ann =
       Store.settings.announcement ||
-      "Free shipping on orders above " +
-      money(Store.settings.freeShippingAbove) +
-      " &nbsp;·&nbsp; <b>Dispatched in 48 hours</b> &nbsp;·&nbsp; Easy 7-day returns &nbsp;·&nbsp; 100% pure cotton";
+      "Complimentary Delivery — ₹60 shipping discount applied &nbsp;·&nbsp; <b>Dispatched in 48 hours</b> &nbsp;·&nbsp; Easy 7-day returns &nbsp;·&nbsp; 100% pure cotton";
     const annTrack = `<span>${ann}</span>`.repeat(4);
     return `
 <div class="announce"><div class="track">${annTrack}${annTrack}</div></div>
@@ -673,20 +669,13 @@
 
     const s = Store.settings;
     const sub = Cart.subtotal();
-    const remain = Number(s.freeShippingAbove) - sub;
+    const t = totals();
     ft.innerHTML = `
-${remain > 0
-        ? `<div class="ship-bar">Add <b>${money(
-          remain
-        )}</b> more for free shipping
-        <div class="track"><div class="fill" style="width:${Math.min(
-          100,
-          (sub / Number(s.freeShippingAbove)) * 100
-        )}%"></div></div></div>`
-        : `<div class="ship-bar" style="color:var(--green);font-weight:600">✓ You've unlocked free shipping</div>`
-      }
-<div class="sum-row total"><span>Subtotal</span><span>${money(sub)}</span></div>
-<p class="tiny muted" style="margin:6px 0 14px">Shipping &amp; discounts calculated at checkout.</p>
+<div class="sum-row"><span>Subtotal</span><span>${money(sub)}</span></div>
+<div class="sum-row"><span>Delivery Fee</span><span>${money(t.baseShip)}</span></div>
+<div class="sum-row" style="color:var(--green);font-weight:600"><span>Online Delivery Discount</span><span>− ${money(t.shipDiscount)}</span></div>
+<div class="sum-row total" style="margin-top:6px;padding-top:8px;border-top:1px dashed var(--line)"><span>Total (Online)</span><span>${money(t.total)}</span></div>
+<p class="tiny muted" style="margin:6px 0 14px">⚡ Free delivery applied when paying online with UPI at checkout.</p>
 <a class="btn btn-block btn-red" href="checkout.html">Checkout ${ICON.arrow}</a>
 <a class="btn btn-block btn-ghost btn-sm" href="cart.html" style="margin-top:9px">View full bag</a>`;
   }
