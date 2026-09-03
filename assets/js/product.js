@@ -160,18 +160,57 @@
   </div>
 </div>`;
 
-  /* ── gallery (single source image + zoom) ────────── */
-  const thumbs = p.category === "tote" ? [p.image] : [p.image, "assets/img/brand/life-4.webp", "assets/img/brand/life-2.webp"];
+  /* ── gallery (multi-image product gallery + zoom) ────────── */
+  const TOTE_GALLERIES = {
+    prajakta: [
+      "assets/img/products/prajakta.webp",
+      "assets/img/products/prajakta-hanger.webp",
+      "assets/img/products/prajakta-dimensions.webp",
+    ],
+    chafa: [
+      "assets/img/products/chafa.webp",
+      "assets/img/products/chafa-hanger.webp",
+    ],
+    kathak: [
+      "assets/img/products/kathak.webp",
+      "assets/img/products/kathak-hanger.webp",
+    ],
+    bharatnatyam: [
+      "assets/img/products/bharatnatyam.webp",
+      "assets/img/products/bharatnatyam-hanger.webp",
+    ],
+    jastwand: [
+      "assets/img/products/jastwand.webp",
+    ],
+    nishigandh: [
+      "assets/img/products/nishigandh.webp",
+    ],
+    tulips: [
+      "assets/img/products/tulips.webp",
+      "assets/img/products/tulips-lifestyle.webp",
+    ],
+  };
+
+  const thumbs =
+    TOTE_GALLERIES[p.slug] ||
+    (p.category === "tote"
+      ? [p.image]
+      : [p.image, "assets/img/brand/life-4.webp", "assets/img/brand/life-2.webp"]);
   const thBox = $("#pdThumbs");
-  thBox.style.display = "flex";
-  thBox.innerHTML = thumbs
-    .map(
-      (t, i) =>
-        `<button class="${i === 0 ? "on" : ""}" data-th="${t}"><img src="${t}" alt="View ${
-          i + 1
-        }" onerror="this.parentElement.style.display='none'"></button>`
-    )
-    .join("");
+  if (thumbs.length > 0) {
+    thBox.style.display = "flex";
+    thBox.innerHTML = thumbs
+      .map(
+        (t, i) =>
+          `<button class="${i === 0 ? "on" : ""}" data-th="${t}"><img src="${t}" alt="View ${
+            i + 1
+          }" onerror="this.parentElement.style.display='none'"></button>`
+      )
+      .join("");
+  } else {
+    thBox.innerHTML = "";
+    thBox.style.display = "none";
+  }
   $$("#pdThumbs button").forEach((b) => {
     b.onclick = () => {
       $$("#pdThumbs button").forEach((x) => x.classList.remove("on"));
