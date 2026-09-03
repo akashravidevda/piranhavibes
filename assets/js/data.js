@@ -114,7 +114,7 @@ window.PV_PRODUCTS = [
   /* ── TOTE BAGS ──────────────────────────────────────────── */
   { sku: "PV-TOT-CHF", slug: "chafa", name: "Chafa", category: "tote", price: 350, stock: 30, sizes: O, colors: ["Black"], desc: toteCopy, badge: "", featured: 1 },
   { sku: "PV-TOT-JSW", slug: "jastwand", name: "Jastwand", category: "tote", price: 350, stock: 28, sizes: O, colors: ["Black"], desc: toteCopy, badge: "", featured: 0 },
-  { sku: "PV-TOT-NGD", slug: "nishigandh", name: "Nishigandh", category: "tote", price: 300, stock: 25, sizes: O, colors: ["Black"], desc: toteCopy, badge: "", featured: 0 },
+  { sku: "PV-TOT-NGD", slug: "nishigandh", name: "Nishigandh", category: "tote", price: 350, stock: 25, sizes: O, colors: ["Black"], desc: toteCopy, badge: "", featured: 0 },
   { sku: "PV-TOT-BRN", slug: "bharatnatyam", name: "Bharatnatyam", category: "tote", price: 350, stock: 22, sizes: O, colors: ["Black"], desc: toteCopy, badge: "Trending", featured: 1 },
   { sku: "PV-TOT-KTH", slug: "kathak", name: "Kathak", category: "tote", price: 350, stock: 24, sizes: O, colors: ["Black"], desc: toteCopy, badge: "", featured: 1 },
   { sku: "PV-TOT-PRJ", slug: "prajakta", name: "Prajakta", category: "tote", price: 350, stock: 26, sizes: O, colors: ["Black"], desc: toteCopy, badge: "", featured: 0 },

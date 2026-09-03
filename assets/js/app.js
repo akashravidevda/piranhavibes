@@ -191,6 +191,8 @@
     let price = Number(p.price) || 0;
     if (slug === "tulips") {
       price = 330;
+    } else if (SPECIFIC_BLACK_TOTES.includes(slug)) {
+      price = 350;
     }
     return {
       sku: p.sku || slug.toUpperCase(),

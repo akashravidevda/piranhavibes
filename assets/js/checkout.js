@@ -120,53 +120,24 @@
         }
         <label class="radio-card${method === "UPI" ? " on" : ""}" data-m="UPI">
           <input type="radio" name="pay" value="UPI" ${method === "UPI" ? "checked" : ""}>
-          <span><b>UPI / Online Payment</b> <span class="badge" style="background:#e6f4ea;color:#137333;font-weight:700;font-size:0.75rem;padding:2px 8px;border-radius:4px;margin-left:6px">FREE Delivery (Save ₹60)</span><small style="display:block;margin-top:2px">Pay to <b>${esc(
-            Store.settings.upiId || CFG.UPI_ID
-          )}</b> using any UPI app (GPay / PhonePe / Paytm). Free delivery write-off applied!</small></span>
+          <span><b>Pay Online (Razorpay — UPI, Cards, NetBanking)</b> <span class="badge" style="background:#e6f4ea;color:#137333;font-weight:700;font-size:0.75rem;padding:2px 8px;border-radius:4px;margin-left:6px">FREE Delivery (Save ₹60)</span><small style="display:block;margin-top:2px">Instant &amp; secure checkout via UPI (GPay, PhonePe, Paytm, CRED), Cards &amp; NetBanking. Free delivery discount applied!</small></span>
         </label>
         <div id="upiBox" class="${method === "UPI" ? "" : "hidden"}" style="margin-top:12px">
-          <div class="upi-pay-card">
-            <div class="upi-badge-row">
-              <span class="upi-pill">VERIFIED BHIM UPI</span>
-              <div class="upi-apps-icons">
+          <div class="upi-pay-card" style="background:var(--paper-2);border:1px solid var(--line);border-radius:12px;padding:16px">
+            <div class="upi-badge-row" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+              <span class="upi-pill" style="font-weight:700;font-size:0.76rem;letter-spacing:0.04em;color:var(--ink)">🔒 SECURE RAZORPAY PAYMENT</span>
+              <div class="upi-apps-icons" style="display:flex;gap:6px;flex-wrap:wrap">
+                <span class="app-tag">UPI</span>
                 <span class="app-tag">GPay</span>
                 <span class="app-tag">PhonePe</span>
                 <span class="app-tag">Paytm</span>
-                <span class="app-tag">BHIM</span>
-                <span class="app-tag">CRED</span>
+                <span class="app-tag">Cards</span>
+                <span class="app-tag">NetBanking</span>
               </div>
             </div>
-
-            <div class="upi-grid-split">
-              <!-- Dynamic QR Code Stage -->
-              <div class="upi-qr-stage">
-                <div class="upi-qr-frame">
-                  <img id="upiQrCodeImg" src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=8&data=${encodeURIComponent(`upi://pay?pa=${Store.settings.upiId || CFG.UPI_ID}&pn=${encodeURIComponent(CFG.BRAND)}&am=${t.total}&cu=INR&tn=${encodeURIComponent('Order ' + (window.PV_CONFIG && window.PV_CONFIG.BRAND || 'Piranha Vibes'))}`)}" alt="Scan to pay via UPI" width="160" height="160" loading="lazy">
-                </div>
-                <small class="upi-qr-label">Scan with any UPI app</small>
-              </div>
-
-              <!-- UPI ID & Details -->
-              <div class="upi-details-stage">
-                <div class="upi-amount-callout">
-                  <span class="tiny muted">Amount to pay:</span>
-                  <b class="upi-total-val" id="upiAmtDisplay">${money(t.total)}</b>
-                </div>
-
-                <div class="upi-copy-container">
-                  <span class="tiny muted" style="display:block;margin-bottom:4px">Payee UPI ID:</span>
-                  <div class="upi-copy-field">
-                    <code id="upiIdValue">${esc(Store.settings.upiId || CFG.UPI_ID)}</code>
-                    <button type="button" class="btn btn-ghost btn-sm" id="btnCopyUpi" style="padding:6px 12px;font-size:0.78rem">Copy</button>
-                  </div>
-                </div>
-
-                <!-- Direct Native UPI Intent Button (Mobile) -->
-                <a id="btnUpiIntent" href="upi://pay?pa=${encodeURIComponent(Store.settings.upiId || CFG.UPI_ID)}&pn=${encodeURIComponent(CFG.BRAND)}&am=${t.total}&cu=INR&tn=${encodeURIComponent('Order Piranha Vibes')}" class="btn btn-sm btn-block btn-upi-app" target="_blank" rel="noopener">
-                  <span>⚡ Pay via UPI App (GPay / PhonePe)</span>
-                </a>
-              </div>
-            </div>
+            <p style="font-size:0.86rem;line-height:1.55;color:var(--tx-2);margin:0">
+              When you click <b>Place order &amp; Pay</b> below, your order will be safely registered in our database and you will proceed to the official Razorpay gateway to complete your payment.
+            </p>
           </div>
         </div>
       </div>
@@ -179,7 +150,7 @@
       <label class="fopt" style="margin-bottom:16px"><input type="checkbox" id="agree"> I agree to the shipping &amp; 7-day return policy *</label>
       <p class="tiny" id="agreeErr" style="color:var(--red);display:none;margin:-10px 0 14px">Please accept the policy to continue</p>
 
-      <button class="btn btn-red btn-lg btn-block" type="submit" id="placeBtn">Place order · <span id="btnTotal">${money(
+      <button class="btn btn-red btn-lg btn-block" type="submit" id="placeBtn">${method === "UPI" ? "Place order & Pay · " : "Place order · "}<span id="btnTotal">${money(
         t.total
       )}</span></button>
       <p class="tiny muted" style="text-align:center;margin-top:12px">You'll receive an order ID immediately. No account needed.</p>
@@ -188,44 +159,6 @@
 
   <aside class="co-side">${summary(t)}</aside>
 </div>`;
-
-    /* helper to update UPI dynamic links & QR */
-    const updateUpiDetails = (totalAmt) => {
-      const upiId = Store.settings.upiId || CFG.UPI_ID;
-      const upiUrl = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(CFG.BRAND)}&am=${totalAmt}&cu=INR&tn=${encodeURIComponent('Order ' + CFG.BRAND)}`;
-      const qrImg = $("#upiQrCodeImg");
-      if (qrImg) {
-        qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=8&data=${encodeURIComponent(upiUrl)}`;
-      }
-      const intentBtn = $("#btnUpiIntent");
-      if (intentBtn) {
-        intentBtn.href = upiUrl;
-      }
-      const amtDisplay = $("#upiAmtDisplay");
-      if (amtDisplay) {
-        amtDisplay.textContent = money(totalAmt);
-      }
-    };
-
-    /* copy UPI button */
-    const copyBtn = $("#btnCopyUpi");
-    if (copyBtn) {
-      copyBtn.onclick = (e) => {
-        e.preventDefault();
-        const upiId = Store.settings.upiId || CFG.UPI_ID;
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(upiId).then(() => {
-            copyBtn.textContent = "Copied! ✓";
-            toast("UPI ID copied to clipboard!", "ok");
-            setTimeout(() => { copyBtn.textContent = "Copy"; }, 2000);
-          }).catch(() => {
-            prompt("Copy UPI ID:", upiId);
-          });
-        } else {
-          prompt("Copy UPI ID:", upiId);
-        }
-      };
-    }
 
     /* payment switching */
     $$(".radio-card").forEach((rc) => {
@@ -237,8 +170,10 @@
         const nt = totals(coupon, method);
         const side = $(".co-side");
         if (side) side.innerHTML = summary(nt);
-        $("#btnTotal").textContent = money(nt.total);
-        updateUpiDetails(nt.total);
+        const placeBtn = $("#placeBtn");
+        if (placeBtn) {
+          placeBtn.innerHTML = (method === "UPI" ? "Place order & Pay · " : "Place order · ") + `<span id="btnTotal">${money(nt.total)}</span>`;
+        }
       };
     });
 
@@ -297,8 +232,8 @@
       pincode: f.pincode.value.trim(),
       landmark: f.landmark.value.trim(),
       notes: f.notes.value.trim(),
-      paymentMethod: method,
-      txnRef: (f.txn && f.txn.value) ? f.txn.value.trim() : "",
+      paymentMethod: method === "UPI" ? "Online (Razorpay)" : "COD",
+      txnRef: "Razorpay Checkout",
       coupon: t.discount ? coupon.toUpperCase() : "",
       subtotal: t.sub,
       discount: t.discount,
@@ -344,7 +279,13 @@
     );
     sessionStorage.removeItem("pv_coupon");
     Cart.clear();
-    location.href = "order-success.html?id=" + encodeURIComponent(res.orderId);
+
+    const rzpUrl = Store.settings.razorpayLink || CFG.RAZORPAY_LINK;
+    if (method === "UPI" && rzpUrl) {
+      location.href = rzpUrl;
+    } else {
+      location.href = "order-success.html?id=" + encodeURIComponent(res.orderId);
+    }
   }
 
   paint();
