@@ -81,7 +81,7 @@ const menCopy =
 const womenCopy =
   "Empowering Marathi typography on soft, breathable cotton with a flattering modern cut. Made to move from morning chai to late-evening plans.";
 const toteCopy =
-  "Heavy 12oz canvas tote with reinforced handles and a roomy main compartment. Eco-friendly, reusable and printed with an original Marathi motif.";
+  "Premium Cotton Tote Bag — Carry Your Style. Carry Your Vibes. A thoughtfully designed, premium-quality 300 GSM tote bag with a spacious 16 × 14 inch size and secure zipper closure.";
 
 window.PV_PRODUCTS = [
   /* ── KIDS ───────────────────────────────────────────────── */

@@ -32,14 +32,79 @@
   const off = p.mrp > p.price ? Math.round(((p.mrp - p.price) / p.mrp) * 100) : 0;
   const low = !out && p.stock <= CFG.LOW_STOCK_THRESHOLD;
 
+  const isTote = p.category === "tote";
+
   const sizeGuide =
     p.category === "kids"
       ? "Kids sizes are chest width in inches: 22 ≈ 2–3 yrs, 24 ≈ 4–5 yrs, 26 ≈ 6–7 yrs, 28 ≈ 8–9 yrs, 30 ≈ 10–11 yrs, 32 ≈ 11–12 yrs."
       : p.category === "infant"
       ? "Infant sizes follow age in months. Rompers have a relaxed cut with press-button closure at the base."
-      : p.category === "tote"
-      ? "One size: 38 cm × 42 cm with 60 cm handles. Comfortably fits a 14-inch laptop, a water bottle and a day's essentials."
+      : isTote
+      ? "One size: 16 × 14 Inches (40.6 × 35.5 cm) with reinforced shoulder drop handles. Comfortably fits a 14-inch laptop, water bottle, books, and everyday essentials."
       : "Adult tees run in a relaxed regular fit — S (36\"), M (38\"), L (40\"), XL (42\"), 2XL (44\"), 3XL (46\") chest. Between sizes or want an oversized drape? Size up.";
+
+  const leadText = isTote
+    ? `<span style="font-weight:700;display:block;color:var(--ink)">Premium Cotton Tote Bag — Carry Your Style. Carry Your Vibes.</span>
+       <span style="display:block;margin-top:6px;font-size:0.95rem;color:var(--tx-2);line-height:1.6">A thoughtfully designed, premium-quality 300 GSM tote bag made for everyday use — with a spacious 16 × 14 inch size and a secure zipper closure.</span>`
+    : esc(p.desc);
+
+  const accordionsHTML = isTote
+    ? `
+    <div class="acc" style="margin-top:30px">
+      <div class="acc-i"><button class="acc-t">Product Specifications <i></i></button>
+        <div class="acc-c"><div>
+          <b>Size</b> 16 × 14 Inches<br>
+          <b>Fabric</b> Premium Cotton (300 GSM — Durable &amp; sturdy)<br>
+          <b>Closure</b> Secure Zipper Closure<br>
+          <b>Design</b> Stylish &amp; premium printed artwork<br>
+          <b>Usage</b> Shopping · Office · College · Travel · Everyday Carry<br>
+          <b>Sustainability</b> Reusable &amp; Eco-Friendly alternative to disposable bags<br>
+          <b>Handles</b> Comfortable reinforced shoulder handles<br>
+          <b>Care</b> Machine wash cold, inside out. Do not iron on print.<br>
+          <b>Origin</b> Pune, Maharashtra, India
+        </div></div>
+      </div>
+      <div class="acc-i"><button class="acc-t">Why You'll Love It <i></i></button>
+        <div class="acc-c"><div>
+          <p style="font-weight:700;margin-bottom:6px">Spacious. Stylish. Strong. Sustainable.</p>
+          <p style="margin-bottom:10px;line-height:1.6">From your daily essentials to books, accessories and shopping — this tote is designed to keep up with your everyday lifestyle.</p>
+          <p class="tiny muted">Designed with love by Piranha Vibes · Design that speaks your Roots.</p>
+        </div></div>
+      </div>
+      <div class="acc-i"><button class="acc-t">Size &amp; Fit <i></i></button>
+        <div class="acc-c"><div>${esc(sizeGuide)}</div></div>
+      </div>
+      <div class="acc-i"><button class="acc-t">Shipping &amp; Returns <i></i></button>
+        <div class="acc-c"><div>
+          Dispatched from our Pune studio within 48 hours. Delivery in 2–4 working days across Maharashtra and 4–7 working days elsewhere in India.<br>
+          Complimentary delivery with Online UPI Payment (standard ${money(Store.settings.shippingFee || 60)} delivery fee applies for Cash on Delivery).<br>
+          Easy return or exchange within 7 days of delivery on unused items with tags intact.
+        </div></div>
+      </div>
+    </div>`
+    : `
+    <div class="acc" style="margin-top:30px">
+      <div class="acc-i"><button class="acc-t">Product details <i></i></button>
+        <div class="acc-c"><div>
+          <b>SKU</b> ${esc(p.sku)}<br>
+          <b>Collection</b> ${esc(meta.name)}<br>
+          <b>Fabric</b> Premium bio-washed combed cotton, pre-shrunk<br>
+          <b>Print</b> Original Marathi typography, colour-locked cure<br>
+          <b>Care</b> Machine wash cold, inside out. Do not bleach. Do not iron on print.<br>
+          <b>Made in</b> Pune, Maharashtra, India
+        </div></div>
+      </div>
+      <div class="acc-i"><button class="acc-t">Size &amp; fit <i></i></button>
+        <div class="acc-c"><div>${esc(sizeGuide)}</div></div>
+      </div>
+      <div class="acc-i"><button class="acc-t">Shipping &amp; returns <i></i></button>
+        <div class="acc-c"><div>
+          Dispatched from our Pune studio within 48 hours. Delivery in 2–4 working days across Maharashtra and 4–7 working days elsewhere in India.
+          Complimentary delivery with Online UPI Payment.
+          Cash on delivery available. Easy return or exchange within 7 days of delivery on unused, unwashed items with tags intact — size exchanges are free.
+        </div></div>
+      </div>
+    </div>`;
 
   root.innerHTML = `
 <div class="pd">
@@ -67,7 +132,7 @@
     </div>
     <p class="tiny muted">Inclusive of all taxes · ₹60 Free Delivery Discount with Online Payment</p>
 
-    <p class="lead" style="font-size:1rem;margin-top:20px">${esc(p.desc)}</p>
+    <p class="lead" style="font-size:1rem;margin-top:20px">${leadText}</p>
 
     ${
       p.colors.length
@@ -135,28 +200,7 @@
       <div>${ICON.leaf}100% pure cotton</div>
     </div>
 
-    <div class="acc" style="margin-top:30px">
-      <div class="acc-i"><button class="acc-t">Product details <i></i></button>
-        <div class="acc-c"><div>
-          <b>SKU</b> ${esc(p.sku)}<br>
-          <b>Collection</b> ${esc(meta.name)}<br>
-          <b>Fabric</b> ${p.category === "tote" ? "12oz heavy canvas, reinforced stitched handles" : "Premium bio-washed combed cotton, pre-shrunk"}<br>
-          <b>Print</b> Original Marathi typography, colour-locked cure<br>
-          <b>Care</b> Machine wash cold, inside out. Do not bleach. Do not iron on print.<br>
-          <b>Made in</b> Pune, Maharashtra, India
-        </div></div>
-      </div>
-      <div class="acc-i"><button class="acc-t">Size &amp; fit <i></i></button>
-        <div class="acc-c"><div>${esc(sizeGuide)}</div></div>
-      </div>
-      <div class="acc-i"><button class="acc-t">Shipping &amp; returns <i></i></button>
-        <div class="acc-c"><div>
-          Dispatched from our Pune studio within 48 hours. Delivery in 2–4 working days across Maharashtra and 4–7 working days elsewhere in India.
-          Flat ${money(Store.settings.shippingFee)} shipping, free above ${money(Store.settings.freeShippingAbove)}.
-          Cash on delivery available. Easy return or exchange within 7 days of delivery on unused, unwashed items with tags intact — size exchanges are free.
-        </div></div>
-      </div>
-    </div>
+    ${accordionsHTML}
   </div>
 </div>`;
 
